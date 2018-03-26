@@ -1,0 +1,7 @@
+{
+    "test":"/opt/SSS-PTS-TEST/test/",
+    "report":"/opt/SSS-PTS-TEST/report/",
+    "run":"run.sh",
+    "tmp":"tmp",
+    "log":"log.txt"
+}

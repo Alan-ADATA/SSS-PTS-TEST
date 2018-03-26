@@ -1,60 +1,51 @@
 The following are example install steps for this benchmark.
 
 
-# UBUNTU SETUP
+# UBUNTU 16.04LTS SETUP
 
 # install dependencies
-sudo apt-get -y update
-sudo apt-get -y install gnuplot php5-cli util-linux zip make autoconf libtool gettext libgconf2-dev libncurses5-dev python-dev libaio-dev libaio1 build-essential git autoconf libtool gettext libgconf2-dev libncurses5-dev python-dev
-
-# build fio 2.1 => Ubuntu 12.04
-git clone git://git.kernel.dk/fio.git
-cd fio
-./configure
-make
-sudo make install
-
-# OR install fio 2.1 => Ubuntu 14.04
-sudo apt-get -y install fio
+$sudo apt-get update
+$sudo apt-get -y install fio gnuplot util-linux zip hdparm wkhtmltopdf xvfb git nvme-cli php-cli php-mysql apache2
 
 
-# compile blkdiscard (check if missing: which blkdiscard)
-cd
-git clone git://git.kernel.org/pub/scm/utils/util-linux/util-linux.git 
-cd util-linux/
-./autogen.sh
-./configure --disable-libblkid
-make
-sudo mv blkdiscard /usr/bin/
-sudo blkdiscard --verbose -o 0 -l `expr $(lsblk -n -o size -b /dev/nvme0n1) - 4097` /dev/nvme0n1
+# install fio-2.16
+https://packages.ubuntu.com/artful/fio
 
 
-# install wkhtmltopdf 0.12.1
-cd
-wget http://download.gna.org/wkhtmltopdf/0.12/0.12.1/wkhtmltox-0.12.1_linux-wheezy-amd64.deb
-sudo dpkg -i wkhtmltox-0.12.1_linux-wheezy-amd64.deb
+# install MariaDB
+https://mariadb.com/downloads/mariadb-tx
 
 
-# get cloudharmony block storage benchmark
-cd
-git clone git://github.com/cloudharmony/block-storage.git
+# install phpMyAdmin
+https://www.phpmyadmin.net/
 
 
-# CENTOS SETUP
-sudo yum -y install fio gnuplot php-cli util-linux zip
-sudo rpm -i http://download.gna.org/wkhtmltopdf/0.12/0.12.1/wkhtmltox-0.12.1_linux-centos6-amd64.rpm
-sudo ln -s /usr/local/bin/wkhtmltopdf /usr/bin
+# get SSS-PTS-TEST
+$cd /opt
+$git clone https://github.com/Alan-ADATA/SSS-PTS-TEST.git
+$sudo mkdir -m=777 report
 
 
-# Setup BigQuery (see save.sh)
-curl https://sdk.cloud.google.com | bash
-gcloud auth login
+# Set up Database
+1. Log in phpMyAdmin and import pts.sql
+2. Add user account user name:pts password:pts for pts database
+2. Add a new user data into pts.user table
 
 
-# RUN TESTS
+# config apache server
+1. $sudo nano /etc/apache2/apache2.conf
+    add 
+    <Directory /opt/SSS-PTS-TEST/web/>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+2. $sudo nano /etc/apache2/sites-available/000-default.conf
+    change DocumentRoot /opt/SSS-PTS-TEST/web
+3. $sudo service apache2 restart
+4. $sudo visudo
+    add www-data ALL=(ALL) NOPASSWD: ALL
 
-# Example: 1 drive test
-sudo ~/block-storage/run.sh --meta_compute_service "Google Compute Engine" --meta_drive_type PD --meta_instance_id n1-standard-16 --meta_provider Google --meta_region us-central1 --meta_storage_config "SSD PD" --meta_test_id "GCE SSD PD 1 DR/4 TC/QD 64" --oio_per_thread 64  --target /dev/sdb --test iops --test throughput --test latency --threads 4 --verbose
 
-# Example: 2 drive test
-sudo ~/block-storage/run.sh --meta_compute_service "Google Compute Engine" --meta_drive_type PD --meta_instance_id n1-standard-16 --meta_provider Google --meta_region us-central1 --meta_storage_config "SSD PD" --meta_test_id "GCE SSD PD 2 DR/8 TC/QD 64" --oio_per_thread 64  --target /dev/sdb --target /dev/sdc --test iops --test throughput --test latency --threads 8 --verbose
+# run
+Use browser and type 'localhost' in address bar.

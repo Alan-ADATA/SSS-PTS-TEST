@@ -1,8 +1,0 @@
-[
-{"name": "hir_steady_state_iops", "type": "int unsigned"},
-{"name": "hir_wait_5s_iops", "type": "int unsigned"},
-{"name": "hir_wait_10s_iops", "type": "int unsigned"},
-{"name": "hir_wait_15s_iops", "type": "int unsigned"},
-{"name": "hir_wait_25s_iops", "type": "int unsigned"},
-{"name": "hir_ait_50s_iops", "type": "int unsigned"}
-]

@@ -1,6 +1,0 @@
-[
-  {"name": "throughput_1024k_100_0", "type": "float unsigned"},
-  {"name": "throughput_1024k_0_100", "type": "float unsigned"},
-  {"name": "throughput_128k_100_0", "type": "float unsigned"},
-  {"name": "throughput_128k_0_100", "type": "float unsigned"}
-]

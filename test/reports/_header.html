@@ -1,0 +1,156 @@
+<!--[if IE 8]><html class="ie8" lang="en"><![endif]-->
+<!--[if IE 9]><html class="ie9" lang="en"><![endif]-->
+<!--[if gt IE 10]><!--><html lang="en"><!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<title><?php echo $title ?></title>
+	<?php if (!isset($options['no3dcharts']) || !$options['no3dcharts']) { ?>
+	<script src="<?php echo $options['jquery_url'] ?>"></script>
+	<script src="<?php echo $options['highcharts_js_url'] ?>"></script>
+	<script src="<?php echo $options['highcharts3d_js_url'] ?>"></script>
+  <?php } ?>
+	<link href='font.css' rel='stylesheet' type='text/css'>
+  <style type="text/css">
+  <!--
+  body {
+    font-family: rfont;
+    font-size: <?php echo $options['font_size'] ?>pt;
+    margin: 0in;
+    padding: 0.1in;
+    width: 8.5in;
+  }
+  table.meta {
+    border-color: #333;
+    border-style: solid;
+    border-width: 0 0 1px 1px;
+    border-spacing: 0;
+    border-collapse: collapse;
+    font-size: <?php echo $options['font_size'] ?>pt;
+    width: 100%;
+  }
+  table.lower.meta {
+    margin-top:-1px;
+  }
+  table.lower.meta tr:first td {
+    width:25%;
+  }
+  table.lower.meta tr:nth-child(2) td {
+    width:12.5%;
+  }
+  table.meta td, table.meta th {
+    border-color: #333;
+    border-style: solid;
+    border-width: 1px 1px 0 0;
+    font-size: smaller;
+    font-weight: bold;
+    margin: 0;
+    padding: 1px 0 1px 3px;
+    text-align:center;
+    vertical-align: middle;
+  }
+  table.meta th {
+    background-color: #d6e3b7;
+    font-size: larger;
+    padding: 5px;
+  }
+  table.meta th.subtitle {
+    background-color:#808080;
+    color:#fff;
+  }
+  table.meta label {
+    margin-left: 10px;
+  }
+  table.meta span {
+    float: right;
+    font-weight: normal;
+    margin-right: 10px;
+  }
+  table.ssDetermination td {
+    text-align: left;
+  }
+  table.ssDetermination td > label {
+    font-weight: normal;
+  }
+  table.ssDetermination td > span {
+    font-weight: bold;
+  }
+  table.tabular {
+    margin: 0 auto;
+    width: 50%;
+  }
+  table.tabular td {
+    background-color: #D2EAF0;
+		font-weight: normal;
+		padding-right: 3px;
+    text-align: right;
+  }
+  table.tabular th {
+		background-color: #666;
+		color: #FFF;
+    font-size: smaller;
+		text-align: center;
+  }
+  table.tabular th.white {
+		background-color: #FFF;
+		color: black;
+	}
+  article {
+    clear: both;
+    height: 11in;
+    margin: 0px;
+    padding: 0px;
+    width: 100%;
+  }
+	article > section {
+		margin: 10px 0;
+		text-align: center;
+	}
+	article > section img.plot {
+	  margin: 0 auto;
+	  width: 100%;
+	}
+	article > section > h3 {
+	  font-size: smaller;
+	  font-weight: bold;
+	  margin: 5px 0 3px 0;
+	  text-align: left;
+	}
+	article > section > figure {
+		height: 550px;
+    margin: 0 auto;
+	}
+	article > footer > p {
+	  font-size: larger;
+		font-weight: bold;
+		text-align: center;
+	}
+  table.meta td.platform {
+    background-color: #fce9d9;
+  }
+  table.meta td.device {
+    background-color: #daedf3;
+  }
+  table.meta td.setup {
+    background-color: #eaf0dd;
+  }
+  table.meta td.test {
+    background-color: #e4dfec;
+  }
+  table.meta td.bottom {
+    background-color: #ffff02;
+    font-size:larger;
+  }
+  table.meta td.normal {
+    font-weight: normal;
+  }
+  table.meta td.left {
+    text-align: left;
+  }
+  table.meta tr.smaller td {
+    font-size: smaller;
+  }
+  -->
+  </style>
+</head>
+
+<body>

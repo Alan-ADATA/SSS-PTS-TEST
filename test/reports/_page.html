@@ -1,0 +1,57 @@
+<article<?php if ($pageNum > 1) echo ' style="page-break-before: always"'; ?>>
+	<header>
+	  <table class="meta">
+	  	<tr>
+	  		<td colspan="4" style="width:50%"><label>Test Run Date Start:</label><span><?php echo date('m/d/Y H:i e', $GLOBALS['block_storage_test_start_time']) ?></span></td>
+	  		<td colspan="4" style="width:50%"><label>Test Run Date Finish:</label><span><?php echo date('m/d/Y H:i e') ?></span></td>
+	  	</tr>
+	  	<tr><th colspan="8"><?php echo strtoupper($test) ?> Test - Report Page</th></tr>
+		  <tr>
+		    <td rowspan="2">SNIA<br>SSS TWG</td>
+		    <td colspan="2" rowspan="2">Solid State Storage<br>Performance Test Spec</td>
+		    <th colspan="3" rowspan="2" class="subtitle"><?php echo $controllers[$n]->getSubtitle($section) ?></th>
+		    <td><span>Rev.</span></td>
+		    <td>PTS-E 1.1</td>
+		  </tr>
+		  <tr>
+		    <td><span>Page.</span></td>
+		    <td><?php echo $testPageNum ?> of <?php echo count($sections) ?></td>
+		  </tr>
+		  <tr>
+		    <td style="width:11%">Vendor:</td>
+		    <td style="width:11%" class="normal"><?php echo isset($options['meta_mfgr']) ? $options['meta_mfgr'] : '' ?></td>
+		    <td style="width:11%">SSD Model:</td>
+		    <td colspan="2" style="width:34%" class="normal"><?php echo isset($options['meta_mfgr']) ? $options['meta_mfgr']." ".$options['modelno'] : '' ?></td>
+		    <td style="width:11%">Tested By:</td>
+		    <td colspan="2" style="width:22%">ADATA</td>
+		  </tr>
+	  </table>
+	  <table class="lower meta">
+	    <tr>
+	      <td colspan="2" class="platform">Test Platform</td>
+	      <td colspan="2" class="device">Device Under Test</td>
+	      <td colspan="2" class="setup">Setup Parameters</td>
+	      <td colspan="2" class="test">Test Parameters</td>
+	    </tr>
+	    <?php foreach($headers as $cols) { ?>
+	      <tr class="smaller">
+	        <?php foreach($cols as $i => $col) { ?>
+	        <td class="<?php echo $col['class'] ?><?php if ($i > 1) echo ' left'; ?>"><?php echo $col['label'] ?></td>
+	        <td class="normal <?php echo $col['class'] ?>"><?php echo $col['value'] ?></td>
+	        <?php } ?>
+	      </tr>
+	    <?php } ?>
+	    <tr>
+	      <td colspan="8" class="bottom"><?php echo $label ?></td>
+	    </tr>
+	  </table>
+	</header>
+	
+	<section>
+  	<?php echo $content ?>
+	</section>
+	
+	<footer>
+		<p>Plot A.<?php echo $pageNum ?> - <?php echo $label ?></p>
+	</footer>
+</article>
