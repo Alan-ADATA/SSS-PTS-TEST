@@ -2299,6 +2299,8 @@ abstract class BlockStorageTest {
       set xrange [0:%d]
       set xtics 0, %d, %d
       set logscale y
+      set yrange [0.1:]
+      set ytics add (\"0\"0.1)
       set key outside center top horizontal reverse
       set grid
       set border linewidth 1.5
