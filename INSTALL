@@ -5,7 +5,7 @@ The following are example install steps for this benchmark.
 
 # install dependencies
 $sudo apt-get update
-$sudo apt-get -y install fio gnuplot util-linux zip hdparm wkhtmltopdf xvfb git nvme-cli php-cli php-mysql apache2
+$sudo apt-get -y install fio gnuplot util-linux zip hdparm wkhtmltopdf xvfb git nvme-cli php-cli php-mysql apache2 smartmontools
 
 
 # install fio-2.16
