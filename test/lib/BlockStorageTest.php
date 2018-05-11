@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * Base abstract class for block storage testing. This class implements base  
@@ -152,7 +152,11 @@ abstract class BlockStorageTest {
    */
   protected $wipc = FALSE;
   
-  
+  /**
+   * total test time in wsat
+   */
+  public $totalTime;
+
   /**
    * adjusts a value to the best matching log scale for use on a graph
    * @param float $val the value to adjust
@@ -258,7 +262,7 @@ abstract class BlockStorageTest {
   protected function fio($options, $step, $target=NULL, $concurrent=TRUE, $offsetThreads=FALSE) {
     $success = FALSE;
     $targets = $target ? array($target) : $this->options['target'];
-    
+
     // sequential execution
     if (!$concurrent && count($targets) > 1) {
       $success = TRUE;
@@ -273,7 +277,7 @@ abstract class BlockStorageTest {
     else if ($targets) {
       $cmd = $this->options['fio'];
       $options = array_merge($this->options['fio_options'], $options);
-      if (!isset($options['numjobs'])) {
+      if (!isset($options['numjobs'])) { 
         $options['numjobs'] = $this->options['threads'];
         if ($options['numjobs'] <= 0) $options['numjobs'] = 1;
       }
@@ -719,23 +723,24 @@ abstract class BlockStorageTest {
       if (is_array($settings)) {
         foreach($settings as $key => $setting) {
           // special settings
-          if (in_array($key, array('height', 'lines', 'nogrid', 'nokey', 'nolinespoints', 'xLogscale', 'xMin', 'xMax', 'xTics', 'xFloatPrec', 'yFloatPrec', 'yLogscale', 'yMin', 'yMax', 'yTics', 'usrxTicLabel'))) continue;
+          if (in_array($key, array('height', 'lines', 'nogrid', 'nokey', 'nolinespoints', 'xLogscale', 'xMin', 'xMax', 'xTics', 'xFloatPrec', 'yFloatPrec', 'yLogscale', 'yMin', 'yMax', 'yTics', 'usrxTicLabel', 'y2'))) continue;
           fwrite($fp, "${setting}\n");
         }
       }
       fwrite($fp, "set autoscale keepfix\n");
       fwrite($fp, "set decimal locale\n");
       fwrite($fp, "set format y \"%'10.${yFloatPrec}f\"\n");
-      //fwrite($fp, "set format x \"%'10.${xFloatPrec}f\"\n");
       if ($xlabel) fwrite($fp, sprintf("set xlabel \"%s\"\n", $xlabel));
-      if (isset($settings['xLogscale'])) {
+      if (isset($settings['xLogscale']) && !isset($settings['usrxTicLabel'])) {
         if (!isset($settings['xMin'])) $xMin = self::adjustLogScale($xMin, TRUE);
         if (!isset($settings['xMax'])) $xMax = self::adjustLogScale($xMax);
       }
-      if ($xMin != $xMax) fwrite($fp, sprintf("set xrange [%d:%d]\n", $xMin, $xMax));
+      if(isset($settings['usrxTicLabel'])) fwrite($fp, sprintf("%s\n",$settings['usrxTicLabel']));
+      if ($xMin != $xMax) fwrite($fp, sprintf("set xrange [%s:%s]\n", $xMin, $xMax));
+
       if (isset($settings['xLogscale'])) fwrite($fp, "set logscale x\n");
-      elseif(isset($settings['usrxTicLabel'])) fwrite($fp, sprintf("%s\n",$settings['usrxTicLabel']));
-      else if ($xMin != $xMax && !$xFloatPrec) fwrite($fp, sprintf("set xtics %d, %d, %d\n", $xMin, $xStep, $xMax));
+      elseif (!isset($settings['usrxTicLabel']) && $xMin != $xMax && !$xFloatPrec) fwrite($fp, sprintf("set xtics %d, %d, %d\n", $xMin, $xStep, $xMax));
+
       if ($ylabel) fwrite($fp, sprintf("set ylabel \"%s\"\n", $ylabel));
       if (isset($yMin)) {
         if (isset($settings['yLogscale'])) {
@@ -748,6 +753,13 @@ abstract class BlockStorageTest {
       }else{
         if (isset($settings['yLogscale'])) fwrite($fp, "set logscale y\n");
       }
+      // y2 ticks
+      if (isset($settings['y2']['label'])) 
+        fwrite($fp, sprintf("set y2label \"%s\"\n", $settings['y2']['label']));
+      if(isset($settings['y2']['min']) && isset($settings['y2']['max'])) 
+        fwrite($fp, sprintf("set y2range [%s:%s]\n", $settings['y2']['min'], $settings['y2']['max']));
+      if (isset($settings['y2']['step']))
+        fwrite($fp, sprintf("set y2tics %s\n", $settings['y2']['step']));
 
       if ($title) fwrite($fp, sprintf("set title \"%s\"\n", $title));
       if (!isset($settings['nokey'])) fwrite($fp, "set key outside center top horizontal reverse\n");
@@ -777,8 +789,7 @@ abstract class BlockStorageTest {
         fwrite($fp, "set style data histogram\n");
       }
       
-      fwrite($fp, "set grid noxtics\n");
-      if (!isset($settings['nogrid'])) fwrite($fp, "set grid ytics lc rgb '#dddddd' lw 1 lt 0\n");
+      if (!isset($settings['nogrid'])) fwrite($fp, "set grid ytics lc rgb '#000000' lw 1 lt 0\n");
       else fwrite($fp, "set grid noytics\n");
       fwrite($fp, "set tic scale 0\n");
       fwrite($fp, sprintf("plot \"%s\"", basename($dfile)));
@@ -792,7 +803,11 @@ abstract class BlockStorageTest {
       }
       else {
         foreach(array_keys($coords) as $i => $key) {
-          fwrite($fp, sprintf("%s every ::1 u %d:%d t \"%s\" ls %d", $i > 0 ? ", \\\n\"\"" : '', ($i*2)+1, ($i*2)+2, $key, $colorPtr));
+          if(isset($settings['y2']) && in_array($key, $settings['y2'], TRUE))
+            fwrite($fp, sprintf("%s every ::1 u %d:%d axes x1y2 t \"%s\" ls %d", $i > 0 ? ", \\\n\"\"" : '', ($i*2)+1, ($i*2)+2, $key, $colorPtr));
+          else
+            fwrite($fp, sprintf("%s every ::1 u %d:%d t \"%s\" ls %d", $i > 0 ? ", \\\n\"\"" : '', ($i*2)+1, ($i*2)+2, $key, $colorPtr));
+          
           $colorPtr++;
           if ($colorPtr > count($colors)) $colorPtr = 1;
         }
@@ -999,7 +1014,6 @@ abstract class BlockStorageTest {
       fwrite($fp, "set autoscale keepfix\n");
       fwrite($fp, "set decimal locale\n");
       fwrite($fp, "set format y \"%'10.${yFloatPrec}f\"\n");
-      //fwrite($fp, "set format x \"%'10.${xFloatPrec}f\"\n");
       if ($xlabel) fwrite($fp, sprintf("set xlabel \"%s\"\n", $xlabel));
       if (isset($settings['xLogscale'])) {
         if (!isset($settings['xMin'])) $xMin = self::adjustLogScale($xMin, TRUE);
@@ -1025,8 +1039,7 @@ abstract class BlockStorageTest {
            
       $color = isset($settings['pointColor']) ? $settings['pointColor'] : 'blue';
       
-      fwrite($fp, "set grid noxtics\n");
-      if (!isset($settings['nogrid'])) fwrite($fp, "set grid ytics lc rgb '#dddddd' lw 1 lt 0\n");
+      if (!isset($settings['nogrid'])) fwrite($fp, "set grid ytics lc rgb '#000000' lw 1 lt 0\n");
       else fwrite($fp, "set grid noytics\n");
       fwrite($fp, "set tic scale 0\n");
       fwrite($fp, sprintf("plot \"%s\"", basename($dfile)));
@@ -1308,7 +1321,7 @@ abstract class BlockStorageTest {
       'NAND Type' => $this->options['nandtype'],
       'PCIe NVM' => '',
       'Purge Method' => $purge,
-      'Write Cache' => 'WCD',
+      'Write Cache' => $this->options['spec']=='enterprise' ? 'Disable':'Enable',
     );
     if ($this->deviceTargets) unset($params['Volume Info']);
     return $params;
@@ -1459,6 +1472,9 @@ abstract class BlockStorageTest {
       case 'secureerase':
         $desc = 'ATA Secure Erase';
         break;
+      case 'formatnamespace':
+        $desc = 'FORMAT namespace';
+        break;
       case 'trim':
         $desc = 'TRIM';
         break;
@@ -1509,7 +1525,8 @@ abstract class BlockStorageTest {
         'direct' => TRUE,
         'ioengine' => 'libaio',
         'refill_buffers' => FALSE,
-        'scramble_buffers' => TRUE
+        'scramble_buffers' => TRUE,
+        'random_generator' => 'tausworthe64'
       ),
       'font_size' => 9,
       'highcharts_js_url' => 'highcharts.js',
@@ -1622,7 +1639,11 @@ abstract class BlockStorageTest {
       'wd_sleep_between_size:',
       'wkhtml_xvfb',
       'dirth_rw:',
-      'dirth_bs:'
+      'dirth_bs:',
+      'spec:',
+      'wsat_wl:',
+      'wsat_time:',
+      'nvmeformat'
     );
     $options = parse_args($opts, array('skip_blocksize', 'skip_workload', 'target', 'test'));
     $verbose = isset($options['verbose']) && $options['verbose'];
@@ -1669,6 +1690,11 @@ abstract class BlockStorageTest {
       else print_msg('Kept --throughput_st option because targets are rotational', $verbose, __FILE__, __LINE__);
     }
     
+    // Client workload write cache enable
+    if(isset($options['spec']) && $options['spec']=='client'){
+      if (isset($options['fio_options']['direct'])) unset($options['fio_options']['direct']); //client:WCE
+      $options['active_range'] = 75;
+    }
     // don't use random IO
     if (isset($options['norandom']) && $options['norandom']) {
       if (isset($options['fio_options']['refill_buffers'])) unset($options['fio_options']['refill_buffers']);
@@ -1783,7 +1809,7 @@ abstract class BlockStorageTest {
    * @return array
    */
   public static function getSupportedTests() {
-    return array('iops', 'throughput', 'latency', 'wsat', 'hir', 'xsr', 'ecw', 'dirth');
+    return array('iops', 'throughput', 'latency', 'wsat', 'hir', 'xsr', 'cbw', 'dirth');
   }
   
   /**
@@ -1867,9 +1893,10 @@ abstract class BlockStorageTest {
    * SNIA test specification, the default value is 10%
    * @param array $metrics the metrics to use to check for steady state (x/y 
    * coords)
+   * @param string $bs block size
    * @return boolean
    */
-  protected function isSteadyState($metrics) {
+  protected function isSteadyState($metrics, $bs=NULL) {
     $steadyState = FALSE;
     if (is_array($metrics) && count($metrics) == 5) {
       $n = 5;
@@ -1906,16 +1933,27 @@ abstract class BlockStorageTest {
       $largestDataExcursion = $max - $min;
       
       if ($steadyState = $largestDataExcursion <= $maxDataExcursion && $largestSlopeExcursion <= $maxSlopeExcursion) {
-        $this->ssData['metrics'] = $metrics;
-        $this->ssData['average'] = $mean_y;
-        $this->ssData['maxDataExcursion'] = $maxDataExcursion;
-        $this->ssData['maxSlopeExcursion'] = $maxSlopeExcursion;
-        $this->ssData['largestDataExcursion'] = $largestDataExcursion;
-        $this->ssData['largestSlopeExcursion'] = $largestSlopeExcursion;
-        $this->ssData['slope'] = $slope;
-        $this->ssData['yIntercept'] = $yIntercept;
-        $this->ssData['linearFitFormula'] = sprintf('%s * R + %s', $slope, $yIntercept);
-      }
+        if($this->test == 'iops'){ // three block size
+          $this->ssData['metrics'][$bs] = $metrics;
+          $this->ssData['average'][$bs] = $mean_y;
+          $this->ssData['maxDataExcursion'][$bs] = $maxDataExcursion;
+          $this->ssData['maxSlopeExcursion'][$bs] = $maxSlopeExcursion;
+          $this->ssData['largestDataExcursion'][$bs] = $largestDataExcursion;
+          $this->ssData['largestSlopeExcursion'][$bs] = $largestSlopeExcursion;
+          $this->ssData['slope'][$bs] = $slope;
+          $this->ssData['yIntercept'][$bs] = $yIntercept;
+          
+        }else{
+          $this->ssData['metrics'] = $metrics;
+          $this->ssData['average'] = $mean_y;
+          $this->ssData['maxDataExcursion'] = $maxDataExcursion;
+          $this->ssData['maxSlopeExcursion'] = $maxSlopeExcursion;
+          $this->ssData['largestDataExcursion'] = $largestDataExcursion;
+          $this->ssData['largestSlopeExcursion'] = $largestSlopeExcursion;
+          $this->ssData['slope'] = $slope;
+          $this->ssData['yIntercept'] = $yIntercept;
+        }
+      }  
       print_msg(sprintf('Steady state check complete: ratio=%s; average=%s; allowed max data excursion=%s; allowed max slope excursion=%s; actual max data excursion=%s; actual max slope excursion=%s; steady state=%s', $ratio, $mean_y, $maxDataExcursion, $maxSlopeExcursion, $largestDataExcursion, $largestSlopeExcursion, $steadyState ? 'YES' : 'NO'), $this->verbose, __FILE__, __LINE__);
     }
     return $steadyState;
@@ -1944,6 +1982,7 @@ abstract class BlockStorageTest {
     $nopurge = isset($this->options['nopurge']) && $this->options['nopurge'];
     $nopurgeIgnore = isset($this->options['nopurge_ignore']) && $this->options['nopurge_ignore'];
     $nosecureerase = isset($this->options['nosecureerase']) && $this->options['nosecureerase'];
+    $nvmeformat = isset($this->options['nvmeformat']) && $this->options['nvmeformat']!==NULL;
     $notrim = isset($this->options['notrim']) && $this->options['notrim'];
     $nozerofill = isset($this->options['nozerofill']) && $this->options['nozerofill'];
     $nozerofillNonRotational = isset($this->options['nozerofill_non_rotational']) && $this->options['nozerofill_non_rotational'];
@@ -1972,6 +2011,19 @@ abstract class BlockStorageTest {
           }
         }
         else print_msg(sprintf('ATA secure erase not be attempted for %s because %s', $target, $nosecureerase ? '--nosecureerase argument was specified (or implied due to lack of --secureerase_pswd argument)' : 'it is not a device'), $this->verbose, __FILE__, __LINE__);
+
+        // NVME format namespace
+        if(!$purged && $nvmeformat){
+          print_msg(sprintf('Attempting nvme format namespace for target %s', $target), $this->verbose, __FILE__, __LINE__);
+          $res = shell_exec(sprintf("nvme format %s",$target));
+          if(preg_match("/^Success/", $res)){
+            print_msg(sprintf('nvme format namespace successful for target %s ', $target), $this->verbose, __FILE__, __LINE__);
+            $this->purgeMethods[$target] = 'formatnamespace';
+            $purged = TRUE;            
+          }            
+          else
+            print_msg(sprintf('nvme format namespace fail for target %s ', $target), $this->verbose, __FILE__, __LINE__);
+        }
 
         // next try TRIM
         // if (!$purged && !$rotational && !$notrim) {
@@ -2172,11 +2224,11 @@ abstract class BlockStorageTest {
    * device targets. This step is skipped if the target is not a device. 
    * Returns TRUE on success, FALSE otherwise. Preconditioned state is tracked
    * with the $wipc instance variable
-   * @param string $bs the block size to use for preconditioning. defaults to 
-   * 128k
+   * @param string $bs the block size to use for preconditioning. defaults to 128k
+   * @param int $qd OIO/Thread (aka Queue Depth (QD))
    * @return boolean
    */
-  public final function wipc($bs='128k') {
+  public final function wipc($bs='128k', $qd=32) {
     global $_wipcPerformed;
     if (!isset($_wipcPerformed)) $_wipcPerformed = FALSE;
     
@@ -2206,7 +2258,7 @@ abstract class BlockStorageTest {
       print_msg(sprintf('Attempting workload independent preconditioning (%dX 128k sequential writes on entire device). %s', $this->options['precondition_passes'], $this->options['precondition_time'] ? 'Preconditioning passes will be fixed ruation of ' . $this->options['precondition_time'] . ' secs' : 'This may take a while...'), $this->verbose, __FILE__, __LINE__);
       for($i=1; $i<=$this->options['precondition_passes']; $i++) {
         
-        $opts = array('blocksize' => $bs, 'rw' => 'write', 'numjobs' => 1);
+        $opts = array('blocksize' => $bs, 'rw' => 'write', 'numjobs' => 1, 'iodepth' => $qd, 'size' => '100%');
         if ($this->options['precondition_time']) {
           $opts['runtime'] = $this->options['precondition_time'];
           $opts['time_based'] = FALSE;
@@ -2276,48 +2328,143 @@ abstract class BlockStorageTest {
     $script = sprintf('%s/%s-%s.pg', $dir, $this->test, $section);
     $dfile = sprintf('%s/%s-%s.dat', $dir, $this->test, $section);
     if (is_array($coords) && ($fp = fopen($script, 'w')) && ($df = fopen($dfile, 'w'))) {
-      
-      // determine value ranges and generate data file
-      $maxPoints = count($coords);
+      if(isset($settings['RTCLP']) || isset($settings['TOTALOIO'])){
+        $maxPoints = NULL;
+        foreach(array_keys($coords) as $i => $key) {
+          if ($maxPoints === NULL || count($coords[$key]) > $maxPoints) $maxPoints = count($coords[$key]);
+        }
 
-      foreach($coords as $time=>$value){
-        fwrite($df, sprintf("%d\t%d\n", $time, $value));
+        $minX = NULL;
+        $maxX = NULL;
+        $minY = NULL;
+        $maxY = NULL;
+        // write data to file
+        for($n=0; $n<$maxPoints; $n++) {
+          foreach(array_keys($coords) as $i => $key) {
+            $x = isset($coords[$key][$n][0]) ? $coords[$key][$n][0] : '';
+            if (is_numeric($x) && ($minX === NULL || $x < $minX)) $minX = $x;
+            if (is_numeric($x) && $x > $maxX) $maxX = $x;
+            $y = isset($coords[$key][$n][1]) ? $coords[$key][$n][1] : '';
+            if (is_numeric($y) && ($minY === NULL || $y < $minY)) $minY = $y;
+            if (is_numeric($y) && $y > $maxY) $maxY = $y;
+            fwrite($df, sprintf("%s%s\t%s", $i > 0 ? "\t" : '', $x, $y));
+          }
+          fwrite($df, "\n");
+        }
+        fclose($df);
+
+        // setting script
+        // LAT, WSAT
+        if(isset($settings['RTCLP'])){
+          $histogram = 
+          "#!/usr/bin/gnuplot
+          reset
+          set terminal svg dashed size 1024,600 
+          set autoscale keepfix
+          set decimal locale
+          set xlabel \"Time (ms)\"
+          set ylabel \"Count\"
+          set y2label \"Confidence Level\"
+          set xrange [0:%s]
+          set format x '%s.2f'
+          set logscale y
+          set yrange [0.1:]
+          set ytics add (\"0\"0.1)
+          set y2range [0:100]
+          set y2tics 0, 10, 100
+          set key outside center top horizontal reverse
+          set grid
+          set border linewidth 1.5
+          set style line 1 lc rgb \"red\" lt 1 lw 3
+          set style fill solid
+          set boxwidth 0.001
+          set grid ytics lc rgb '#000000' lw 1 lt 0
+          set tic scale 0
+          plot \"%s\" using 1:2 with boxes lc rgb '#2894ff' t \"Latency\",\
+          \"\" using 3:4 axes x1y2 smooth mcsplines t '%s Confidence' ls 1,\
+          \"\" using 11:12 axes x1y2 with boxes lc rgb '#00a600' t 'ART=%s',\
+          \"\" using 5:6 axes x1y2 with boxes lc rgb 'purple' t '99.9%s=%s',\
+          \"\" using 7:8 axes x1y2 with boxes lc rgb '#00aeae' t '99.99%s=%s',\
+          \"\" using 9:10 axes x1y2 with boxes lc rgb 'orange' t '99.999%s=%s'";
+  
+          $str = sprintf($histogram, $settings['xMax'], '%', basename($dfile), '%', $settings['ART'], 
+              '%',$settings['99.900000'], '%', $settings['99.990000'], '%', $settings['99.999000']);
+        }
+        // CBW, DIRTH
+        elseif(isset($settings['TOTALOIO'])){
+          $histogram = 
+          "#!/usr/bin/gnuplot
+          reset
+          set terminal svg dashed size 1024,600 
+          set autoscale keepfix
+          set decimal locale
+          set xlabel \"Total OIO - Ave for all TC/QD\"
+          set ylabel \"IOPS\"
+          set y2label \"Response Time (mS)\"
+          set xtics (\"1\"1,\"2\"2,\"4\"3,\"6\"4,\"8\"5,\"12\"6,\"16\"7,\"24\"8,\"32\"9,\"36\"10,\"48\"11,\"64\"12,\"96\"13,\"128\"14,\"192\"15,\"256\"16,\"512\"17,\"1024\"18)
+          set yrange [0:]
+          set y2range [0:]
+          set y2tics %s
+          set key outside center top horizontal reverse
+          set grid
+          set border linewidth 1.5
+          set style line 1 lc rgb \"red\" lt 1 lw 3 pt 5
+          set style fill solid
+          set boxwidth 0.5
+          set grid ytics lc rgb '#000000' lw 1 lt 0
+          set tic scale 0
+          plot \"%s\" using 1:2 with boxes lc rgb '#2894ff' t 'IOPS',\
+          \"\" using 1:2:2 w labels center offset 0,1 notitle,\
+          \"\" using 3:4 axes x1y2 w lp t 'ART' ls 1,\
+          \"\" using 3:4:4 axes x1y2 w labels center offset 0,1 notitle";
+
+          $str = sprintf($histogram, $settings['y2tics'], basename($dfile));
+        }
+
+
+      }else{
+        // determine value ranges and generate data file
+        $maxPoints = count($coords);
+
+        foreach($coords as $time=>$value){
+          fwrite($df, sprintf("%d\t%d\n", $time, $value));
+        }
+        fclose($df); 
+
+        $histogram = 
+          "#!/usr/bin/gnuplot
+          reset
+          set terminal svg dashed size 1024,600 fontfile 'font-svg.css' font 'rfont,13'
+          set autoscale keepfix
+          set decimal locale
+          set xlabel \"Time (ms)\"
+          set ylabel \"Count (A.U.)\"
+          set xrange [0:%d]
+          set xtics 0, %d, %d
+          set logscale y
+          set yrange [0.1:]
+          set ytics add (\"0\"0.1)
+          set key outside center top horizontal reverse
+          set grid
+          set border linewidth 1.5
+          set style line 1 lc rgb \"red\" lt 1 lw 3
+          set style fill solid noborder
+          set boxwidth 0.9 relative
+          set style histogram cluster gap 0
+          set style data histogram
+          set grid ytics lc rgb '#000000' lw 1 lt 0
+          set tic scale 0
+          plot \"%s\" u 2 ls 1 notitle";
+
+        $xScale = round($settings['xMax'] / 10);
+        $str = sprintf($histogram, $settings['xMax'], $xScale, $settings['xMax'], basename($dfile));  
       }
-      fclose($df);   
-     
-      $img = sprintf('%s/%s-%s.svg', $dir, $this->test, $section);
-      $xScale = round($settings['xMax'] / 10);
-
-      $histogram = 
-      "#!/usr/bin/gnuplot
-      reset
-      set terminal svg dashed size 1024,600 fontfile 'font-svg.css' font 'rfont,13'
-      set autoscale keepfix
-      set decimal locale
-      set xlabel \"Time (ms)\"
-      set ylabel \"Count (A.U.)\"
-      set xrange [0:%d]
-      set xtics 0, %d, %d
-      set logscale y
-      set yrange [0.1:]
-      set ytics add (\"0\"0.1)
-      set key outside center top horizontal reverse
-      set grid
-      set border linewidth 1.5
-      set style line 1 lc rgb \"red\" lt 1 lw 3
-      set style fill solid noborder
-      set boxwidth 0.9 relative
-      set style histogram cluster gap 0
-      set style data histogram
-      set grid ytics lc rgb '#000000' lw 1 lt 0
-      set tic scale 0
-      plot \"%s\" u 2 ls 1 notitle";
-
-      $str = sprintf("$histogram", $settings['xMax'], $xScale, $settings['xMax'], basename($dfile));
+      
       fwrite($fp, $str);
-      print_msg(sprintf('Generating histogram %s with %d data sets. Title: %s', basename($img), $maxPoints, $title), $this->verbose, __FILE__, __LINE__);     
       fclose($fp);
-
+      $img = sprintf('%s/%s-%s.svg', $dir, $this->test, $section);  
+      print_msg(sprintf('Generating histogram %s with %d data sets.', basename($img), $maxPoints), $this->verbose, __FILE__, __LINE__);     
+      
       exec(sprintf('chmod +x %s', $script));
       $cmd = sprintf('cd %s; ./%s > %s 2>/dev/null; echo $?', $dir, basename($script), basename($img));
       $ecode = trim(exec($cmd));

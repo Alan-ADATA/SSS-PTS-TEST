@@ -375,7 +375,7 @@ ARGUMENTS:
                                           large block sequential writes to 
                                           small block random writes and back
                                           NOT YET IMPLEMENTED
-                              ecw:        Enterprise Composite Workload - 
+                              cbw:        Enterprise Composite Workload - 
                                           measures performance in a mixed IO 
                                           environment
                                           NOT YET IMPLEMENTED

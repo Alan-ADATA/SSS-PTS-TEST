@@ -119,8 +119,8 @@ try{
             case 'LAT':
                 $jsonFile = array('fio-latency');
                 break;    
-            case 'ECW':
-                $jsonFile = array('fio-ecw-ecw1', 'fio-ecw-ecw2', 'fio-ecw-ecw3', 'ecw');
+            case 'CBW':
+                $jsonFile = array('fio-cbw-cbw1', 'fio-cbw-cbw2', 'fio-cbw-cbw3', 'cbw');
                 break;
             case 'DIRTH':
                 $jsonFile = array('fio-dirth-dirth1', 'fio-dirth-dirth2', 'fio-dirth-dirth3', 'dirth');

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * Block storage test implementation for the Latency test
@@ -21,6 +21,7 @@
 class BlockStorageTestLatency extends BlockStorageTest {
   
   const BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION = 12;
+  const BLOCK_STORAGE_TEST_LATENCY_PERCENTILE_LIST = '1:5:10:20:30:40:50:60:70:80:90:95:99:99.9:99.99:99.999:99.9999';
   
   /**
    * Constructor is protected to implement the singleton pattern using 
@@ -55,7 +56,7 @@ class BlockStorageTestLatency extends BlockStorageTest {
             $bs = $m[2];
             $label = sprintf('RW=0/100, BS=%s', $bs);
             $round = $m[1]*1;
-            $latency = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], $key);
+            $latency = $this->getValue($this->fio['wdpc'][$i]['jobs'][0], $key);
             if (!isset($coords[$label])) $coords[$label] = array();
             $coords[$label][] = array($round, $latency);
           }
@@ -69,8 +70,8 @@ class BlockStorageTestLatency extends BlockStorageTest {
           if (preg_match('/^x([0-9]+)\-0_100\-4k\-/', $job, $m) && isset($jobs[$job]['write'])) {
             if (!isset($coords['Time (ms)'])) $coords['Time (ms)'] = array();
             $round = $m[1]*1;
-            $coords['Time (ms)'][] = array($round, $this->getLatency($jobs[$job], $key));
-            $latencies[$round] = $this->getLatency($jobs[$job], $key);
+            $coords['Time (ms)'][] = array($round, $this->getValue($jobs[$job], $key));
+            $latencies[$round] = $this->getValue($jobs[$job], $key);
           }
         }
         if (isset($coords['Time (ms)'])) {
@@ -112,6 +113,7 @@ class BlockStorageTestLatency extends BlockStorageTest {
         $workloads = array();
         $blockSizes = array();
         $table = array();
+        $types = array('iops','mean','59s','max');
         foreach(array_keys($jobs) as $job) {
           if (preg_match('/^x[0-9]+\-([0-9]+)_([0-9]+)\-([0-9]+[mkb])\-/', $job, $m) && isset($jobs[$job]['write'])) {
             $rw = $m[1] . '/' . $m[2];
@@ -120,9 +122,9 @@ class BlockStorageTestLatency extends BlockStorageTest {
             if (!in_array($bs, $blockSizes)) $blockSizes[] = $bs;
             if (!isset($table[$bs])) $table[$bs] = array();
             if (!isset($table[$bs][$rw])) $table[$bs][$rw] = array();
-            foreach(array('mean', 'max') as $type) {
+            foreach($types as $type) {
               if (!isset($table[$bs][$rw][$type])) $table[$bs][$rw][$type] = array();
-              $table[$bs][$rw][$type][] = $this->getLatency($jobs[$job], $type);
+              $table[$bs][$rw][$type][] = $this->getValue($jobs[$job], $type);
             }
           }
         }
@@ -130,23 +132,29 @@ class BlockStorageTestLatency extends BlockStorageTest {
         $blockSizes = array_reverse($blockSizes);
         // tabular
         if ($table && $section == 'tabular') {
-          $content = '';
-          foreach(array('mean', 'max') as $i => $type) {
-            $content .= ($i ? '<br><br>' : '') . "<div style='text-align:center'><table class='meta tabular'>\n<thead>\n";
-            $content .= '<tr><th colspan="' . (count($workloads) + 1) . '">' . ($type == 'mean' ? 'Average' : 'Maximum') . " Response Time (ms)</th></tr>\n";
-            $content .= '<tr><th rowspan="2" class="white">Block Size (KiB)</th><th colspan="' . count($workloads) . "\" class=\"white\">Read / Write Mix %</th></tr>\n<tr>";
-            foreach($workloads as $rw) $content .= sprintf('<th>%s</th>', $rw);
-            $content .= "</tr>\n</thead>\n<tbody>\n";
-            foreach($blockSizes as $bs) {
-              $content .= sprintf('<tr><th>%s</th>', $bs);
-              foreach($workloads as $rw) {
-                $latency = isset($table[$bs][$rw][$type]) ? $table[$bs][$rw][$type] : NULL;
-                $content .= sprintf('<td>%s</td>', $latency ? round(array_sum($latency)/count($latency), self::BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION) : '');
-              }
-              $content .= "</tr>\n";
+          $title = array('IOPS', 'ART<br>mSec', '99.999%<br>mSec', 'MRT<br>mSec');
+
+          $content = '<table border="1" cellpadding="15" align="center"><tbody>';
+          $content .= '<tr align="center"><td colspan="2"> </td>';
+          $content .= sprintf("<td>PTS-%s</td>", $this->options['spec']=='enterprise'?'E':'C');
+          $content .= sprintf("<td>WC%s</td>", $this->options['spec']=='enterprise'?'D':'E');
+          $content .= '<td>T1/Q1</td></tr>';
+          $content .= '<tr align="center"><td colspan="2">PD=RND</td>';
+          foreach($blockSizes as $bs) $content .= "<td>$bs</td>";
+          $content .= '</tr>';          
+
+          foreach($types as $i => $type){  
+            $content .= sprintf("<tr><td rowspan=\"3\">%s</td>",$title[$i]);
+            foreach($workloads as $rw){
+              $content .= "<td>RW $rw</td>";
+              foreach($blockSizes as $bs){
+                $value = isset($table[$bs][$rw][$type]) ? $table[$bs][$rw][$type] : NULL;
+                $content .= sprintf('<td>%s</td>', $value ? round(array_sum($value)/count($value), 3) : '');
+              } 
+              $content .= "</tr>";
             }
-            $content .= "</tbody>\n</table></div>"; 
           }
+          $content .= '</tbody></table>';
 
           //add data into db
           $tableName = 'LAT';
@@ -155,7 +163,7 @@ class BlockStorageTestLatency extends BlockStorageTest {
           
           foreach($blockSizes as $bs) {
             foreach($workloads as $rw) {
-                foreach(array('mean', 'max') as $i => $type) {
+                foreach($types as $type) {
                   $latency = isset($table[$bs][$rw][$type]) ? $table[$bs][$rw][$type] : NULL;
                   $value = $latency ? round(array_sum($latency)/count($latency), self::BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION) : '';
                   
@@ -184,6 +192,65 @@ class BlockStorageTestLatency extends BlockStorageTest {
           $content = $this->generate3dChart($section, $series, $settings, 'R/W Mix', 2);
         }
         break;
+
+      case 'histogram':
+          foreach(array_keys($jobs) as $job){
+            if(preg_match('/^20min-0_100-4k-rand/', $job)){
+              $iops = $jobs[$job]['write']['iops'];
+              $bw = round($jobs[$job]['write']['bw']/1024, 2);
+              $percentArray = $jobs[$job]['write']['clat']['percentile'];
+              $art = $jobs[$job]['write']['clat']['mean'] / 1000;
+            }
+          }
+
+          $fileName = sprintf("%s/lat-fio-lat_clat.1.log", dirname($dir));
+          
+          $fp = fopen($fileName, 'r');
+          if($fp){
+            while($line = fgets($fp)){
+              $data = explode(",", $line);
+              $time = trim($data[1]);
+              $count[$time] = (isset($count[$time]))? ++$count[$time] : 1;
+            }
+            fclose($fp);
+          }
+                
+          ksort($count);
+          $maxTime = max(array_keys($count)) / 1000;
+
+          $fileName = sprintf("%s/lat-fio-lat_*.log", dirname($dir));
+          exec("rm -f $fileName");
+
+          // count vs. time
+          foreach($count as $time=>$number){
+            $coords['count'][] = array($time/1000, $number);
+          }
+          
+          //confidence level data, 39s, 49s, 59s vs. time
+          foreach($percentArray as $percent=>$value){
+            $msec = $value/1000;
+            $coords['confidence'][] = array($msec, $percent);            
+            
+            if($percent == 99.9 || $percent == 99.99 || $percent == 99.999){
+              $coords[$percent][] = array($msec, 100);
+              $settings[$percent] = $msec;
+            }        
+          }
+
+          // ART vs. time
+          $coords['ART'][] = array($art, 100);
+          $settings['ART'] = $art;
+
+          // max x-axis value
+          $range = $settings['99.999000'] * 0.1;
+
+          $settings['xMax'] = $settings['99.999000'] + $range;
+          $settings['RTCLP'] = TRUE;
+          $title = sprintf("CLP. RND4K RW0, T1Q1, IOPS=%s, %s MB/s, MRT=%s ms", $iops, $bw, $maxTime);
+          $content = sprintf("<h2 style=\"text-align: center;\">%s</h2>",$title);
+          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
+
+          break;
     }
     return $content;
   }
@@ -199,9 +266,10 @@ class BlockStorageTestLatency extends BlockStorageTest {
       'ss-convergence-avg' => 'Steady State Convergence Plot - Average Latency - 100% Writes',
       'ss-convergence-max' => 'Steady State Convergence Plot - Maximum Latency - 100% Writes',
       'ss-measurement' => 'Steady State Measurement Window - RND/4KiB',
-      'tabular' => 'Average and Maximum Response Time - All RW Mix &amp; BS - Tabular Data',
+      'tabular' => 'Ave, 5 9s, Max Response Times &amp; IOPS - All RW Mix &amp; BS - Tabular Data',
       '3d-plot-avg' => 'Average Latency vs. BS and R/W Mix - 3D Plot',
-      '3d-plot-max' => 'Maximum Latency vs. BS and R/W Mix - 3D Plot'
+      '3d-plot-max' => 'Maximum Latency vs. BS and R/W Mix - 3D Plot',
+      'histogram' => 'LAT Response Time Histogram – Confidence Level Plots'
     );
   }
   
@@ -275,7 +343,7 @@ class BlockStorageTestLatency extends BlockStorageTest {
         $key = sprintf('%s_%s_%s_', $m[3], $m[1], $m[2]);
         foreach(array('mean', 'max') as $type) {
           if (!isset($metrics[$key . $type])) $metrics[$key . $type] = array();
-          $metrics[$key . $type][] = $this->getLatency($jobs[$job], $type);
+          $metrics[$key . $type][] = $this->getValue($jobs[$job], $type);
         }
       }
     }
@@ -312,7 +380,8 @@ class BlockStorageTestLatency extends BlockStorageTest {
         foreach($blockSizes as $bs) {
           $name = sprintf('x%d-%s-%s-rand', $x, str_replace('/', '_', $rw), $bs);
           print_msg(sprintf('Executing random IO test iteration for round %d of %d, rw ratio %s and block size %s', $x, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
-          $params = array('blocksize' => $bs, 'name' => $name, 'runtime' => $this->options['wd_test_duration'], 'time_based' => FALSE, 'numjobs' => 1, 'iodepth' => 1, 'lockfile' => 'exclusive');
+          $params = array('blocksize' => $bs, 'name' => $name, 'runtime' => $this->options['wd_test_duration'], 'time_based' => FALSE,
+                          'numjobs' => 1, 'iodepth' => 1, 'lockfile' => 'exclusive', 'percentile_list'=> '99.999');
           if ($read == 100) $params['rw'] = 'randread';
           else if ($write == 100) $params['rw'] = 'randwrite';
           else {
@@ -328,7 +397,7 @@ class BlockStorageTestLatency extends BlockStorageTest {
             break;
           }
           if ($rw == '0/100' && $bs == '4k') {
-            $latency = $this->getLatency($results['jobs'][0]);
+            $latency = $this->getValue($results['jobs'][0]);
             print_msg(sprintf('Added Latency metric %s ms for steady state verification', $latency), $this->verbose, __FILE__, __LINE__);
             $ssMetrics[$x] = $latency;
           }
@@ -352,32 +421,69 @@ class BlockStorageTestLatency extends BlockStorageTest {
       }
       if (!$fio || $status !== NULL) break;
     }
+
     // set wdpc attributes
     $this->wdpc = $status;
     $this->wdpcComplete = $x;
     $this->wdpcIntervals = count($workloads)*count($blockSizes);
     
+    // Execute R/W% = 0/100 4KiB RND IO for 20 minutes
+    print_msg('Executing random IO test iteration rw ratio 0/100 and block size 4k for 20 minutes', $this->verbose, __FILE__, __LINE__);
+    unset($params);
+    $params = array('blocksize' => '4k', 'rw' => 'randwrite', 'name' => '20min-0_100-4k-rand', 
+                    'runtime' => 60*20, 'time_based' => FALSE, 'numjobs' => 1, 'iodepth' => 1, 'lockfile' => 'exclusive', 
+                    'percentile_list'=> '1:5:10:20:30:40:50:60:70:80:90:95:99:99.9:99.99:99.999:99.9999',
+                    'write_lat_log' => 'lat-fio-lat');
+
+    if ($this->fio($params, 'wdpc')) {
+      print_msg('Random IO test iteration for rw ratio 0/100 and block size 4k for 20 minutes was successful', $this->verbose, __FILE__, __LINE__);
+    } else {
+      print_msg('Random IO test iteration for rw ratio 0/100 and block size 4k for 20 minutes failed', $this->verbose, __FILE__, __LINE__, TRUE);
+    }
+
     return $status;
   }
   
   /**
-   * returns the latency metric in milliseconds from the $job specified
-   * @param array $job the job to return latency for
-   * @param string $type the type of latency to return (mean, min, max)
+   * returns the value from the $job specified
+   * @param array $job the job to return data for
+   * @param string $type what data want to return
    * @return float
    */
-  private function getLatency($job, $type='mean') {
-    $latency = NULL;
+  private function getValue($job, $type='mean') {
+
     if (isset($job['write']) || isset($job['read'])) {
-      // both read and write - return mean of the two
-      if (isset($job['write']['lat'][$type]) && $job['write']['lat'][$type] > 0 && isset($job['read']['lat'][$type]) && $job['read']['lat'][$type] > 0) $latency = ($job['write']['lat'][$type] + $job['read']['lat'][$type])/2;
-      else if (isset($job['write']['lat'][$type]) && $job['write']['lat'][$type] > 0) $latency = $job['write']['lat'][$type];
-      else if (isset($job['read']['lat'][$type]) && $job['read']['lat'][$type] > 0) $latency = $job['read']['lat'][$type];
+      if($type == 'iops'){
+        if($job['write']['iops']>0 && $job['read']['iops']>0)
+          $value = ($job['write']['iops'] + $job['read']['iops']) / 2;
+        elseif($job['write']['iops'] > 0)
+          $value = $job['write']['iops'];
+        elseif($job['read']['iops'] > 0)
+          $value = $job['read']['iops'];
+
+      }elseif($type == '59s'){
+        if($job['write']['clat']['percentile']['99.999000']>0 && $job['read']['clat']['percentile']['99.999000']>0)
+          $value = ($job['write']['clat']['percentile']['99.999000'] + $job['read']['clat']['percentile']['99.999000']) / 2;
+        elseif($job['write']['clat']['percentile']['99.999000'] > 0)
+          $value = $job['write']['clat']['percentile']['99.999000'];
+        elseif($job['read']['clat']['percentile']['99.999000'] > 0)
+          $value = $job['read']['clat']['percentile']['99.999000'];  
+
+        // convert from microseconds to milliseconds
+        if ($value) $value = round($value/1000, self::BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION);
+
+      }else{
+        if(isset($job['write']['lat'][$type]) && $job['write']['lat'][$type] > 0 && isset($job['read']['lat'][$type]) && $job['read']['lat'][$type] > 0) 
+          $latency = ($job['write']['lat'][$type] + $job['read']['lat'][$type])/2;
+        elseif(isset($job['write']['lat'][$type]) && $job['write']['lat'][$type] > 0) 
+          $latency = $job['write']['lat'][$type];
+        elseif(isset($job['read']['lat'][$type]) && $job['read']['lat'][$type] > 0) 
+          $latency = $job['read']['lat'][$type];
       // convert from microseconds to milliseconds
-      if ($latency) $latency = round($latency/1000, self::BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION);
+        if ($latency) $value = round($latency/1000, self::BLOCK_STORAGE_TEST_LATENCY_ROUND_PRECISION);
+      }
     }
-    return $latency;
+    return $value;
   }
-  
 }
 ?>

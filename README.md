@@ -1,13 +1,13 @@
 
 # SSS_PTS_TEST
 
-This is a software that can execute SNIA SSS PTS Enterprise v1.1 test. It performs FIO testing through webpage interface, replacing CLI. Finally uses database to manage historical records.
+This is a software that can execute SNIA [Solid State Storage (SSS) Performance Test Specification (PTS)](https://www.snia.org/tech_activities/standards/curr_standards/pts) v2.0 test. It performs FIO testing through webpage interface, replacing CLI. Finally uses database to manage historical records.
 
 Each directory is described as follows
   - **web**
   User interface, it can execute test or query result.
   - **test**
-  The main processes for testing PTS enterprise v1.1. These are modified [cloudharmony/block-storage](https://github.com/cloudharmony/block-storage) source code.
+  The main processes for testing PTS v2.0.
   - **database**
   Database used by this software.
   - **report**

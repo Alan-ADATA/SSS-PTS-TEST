@@ -55,7 +55,7 @@ if(!isset($_POST['action'])){
 }else{
 
     if($_POST['date1'] && $_POST['date2']){
-        $condition = sprintf("`stime` >= '%s 00:00:00' AND `stime` <= '%s 00:00:00'",$_POST['date1'],$_POST['date2']);
+        $condition = sprintf("`stime` >= '%s 00:00:00' AND `stime` <= '%s 23:59:59'",$_POST['date1'],$_POST['date2']);
     }
     if($_POST['ssd']){
         if($condition){

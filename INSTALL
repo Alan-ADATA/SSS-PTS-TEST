@@ -5,7 +5,7 @@ The following are example install steps for this benchmark.
 
 # install dependencies
 $sudo apt-get update
-$sudo apt-get -y install fio gnuplot util-linux zip hdparm wkhtmltopdf xvfb git nvme-cli php-cli php-mysql apache2
+$sudo apt-get -y install fio gnuplot util-linux zip hdparm wkhtmltopdf xvfb git nvme-cli php-cli php-mysql apache2 smartmontools
 
 
 # install fio-2.16
@@ -13,11 +13,12 @@ https://packages.ubuntu.com/artful/fio
 
 
 # install MariaDB
-https://mariadb.com/downloads/mariadb-tx
+https://downloads.mariadb.org/mariadb/repositories/#mirror=ossplanet&distro=Ubuntu&distro_release=xenial--ubuntu_xenial
 
 
 # install phpMyAdmin
 https://www.phpmyadmin.net/
+https://docs.phpmyadmin.net/en/latest/setup.html#ubuntu
 
 
 # get SSS-PTS-TEST
@@ -27,25 +28,19 @@ $sudo mkdir -m=777 SSS-PTS-TEST/report
 
 
 # Set up Database
-1. Log in phpMyAdmin and import pts.sql
-2. Add user account user name:pts password:pts for pts database
-2. Add a new user data into pts.user table
+1. Log in phpMyAdmin and create a new 'pts' database
+2. Add user account user name:pts password:pts for 'pts' database
+3. import pts.sql from 'SSS-PTS-TEST/web/'
+4. Add a new admin user into pts.user table
 
 
 # config apache server
-1. $sudo nano /etc/apache2/apache2.conf
-    add 
-    <Directory /opt/SSS-PTS-TEST/web/>
-        Options Indexes FollowSymLinks
-        AllowOverride None
-        Require all granted
-    </Directory>
-2. $sudo nano /etc/apache2/sites-available/000-default.conf
-    change DocumentRoot /opt/SSS-PTS-TEST/web
-3. $sudo service apache2 restart
-4. $sudo visudo
-    add www-data ALL=(ALL) NOPASSWD: ALL
+1. create a soft link
+    $sudo ln -s /var/www/html/pts /opt/SSS-PTS-TEST/web/
+2. $sudo service apache2 restart
+3. $sudo visudo
+    add 'www-data ALL=(ALL) NOPASSWD: ALL'
 
 
 # run
-Use browser and type 'localhost' in address bar.
+Open a browser and type 'localhost/pts' in address bar.

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * Block storage test implementation for the Cross Stimulus Recovery test
@@ -22,8 +22,8 @@ class BlockStorageTestXsr extends BlockStorageTest {
   const GROUP1 = '1024k ';
   const GROUP2 = '8k';
   const GROUP3 = '1024k';
-  const DATA_NUM = 60*2;  //2hr
-  const BLOCK_STORAGE_TEST_XSR_ROUND_PRECISION = 12;
+  // const DATA_NUM = 60*2;  //2hr
+  const BLOCK_STORAGE_TEST_XSR_ROUND_PRECISION = 6;
   const TEST_TIME = 60;   //sec
   /**
    * the number of test cycles that constitute a single interval
@@ -55,6 +55,7 @@ class BlockStorageTestXsr extends BlockStorageTest {
    * @return string
    */
   protected function getReportContent($section, $jobs, $dir) {
+    /*
     $content = NULL;
     $coords = array(); 
     
@@ -166,6 +167,134 @@ class BlockStorageTestXsr extends BlockStorageTest {
     //Draw line chart
     if ($coords) $content = $this->generateLineChart($dir, $section, $coords, $xlabel, $ylabel, NULL, $settings);
     return $content;
+    */
+
+    $content = NULL;
+    $coords = array(); 
+    
+    switch($section){
+      case 'tp-time-all-access-groups':
+
+        $ylabel = 'Throughput (MB/s)';
+        $settings = array('xMin' => 0, 'xMax' => self::TOTAL_CYCLES);
+        
+        foreach(array_keys($this->fio['wdpc']) as $i){
+          $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
+          if ($job && preg_match('/^x1/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {          
+            $bw = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $coords[self::GROUP1][] = array($i+1, $bw);
+
+          }elseif ($job && preg_match('/^x2/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {
+            $bw = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $coords[self::GROUP2][] = array($i+1, $bw);
+
+          }elseif ($job && preg_match('/^x3/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {
+            $bw = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $coords[self::GROUP3][] = array($i+1, $bw);
+          }
+        }
+
+        //fix gunplot bug: data cannot be less then after(資料不能比後面的少)
+        $num1 = count($coords[self::GROUP2]);
+        $num2 = count($coords[self::GROUP3]);
+        if($num1 < $num2){
+          $size = $num2 - $num1;
+          for($i=0; $i<$size; $i++){
+            $coords[self::GROUP2][] = $coords[self::GROUP2][$num1-1];
+          }
+        }
+
+        //set parameter
+        $xlabel = 'Time (Minutes)';
+        $settings['height'] = 600;
+        $settings['nolinespoints'] = TRUE;
+        $settings['yMin'] = 0;
+
+        //Draw line chart
+        if ($coords) $content = $this->generateLineChart($dir, $section, $coords, $xlabel, $ylabel, NULL, $settings);
+        break;
+
+      case 'tp-lat-time':
+        foreach(array_keys($this->fio['wdpc']) as $i){
+          $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
+          if($job){
+            $bw = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $coords['BW'][] = array($i+1, $bw);
+            $art = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'mean');
+            $coords['ART'][] = array($i+1, $art);
+            $mrt = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'max');
+            $coords['MRT'][] = array($i+1, $mrt);
+          }
+        }
+
+        $bwArray = array();
+        $artArray = array();
+        $mrtArray = array();
+        // find the max tp
+        foreach($coords['BW'] as $tmpArray)   $bwArray[] = $tmpArray[1];
+        $ymax = max($bwArray) + max($bwArray)*0.1;
+        // find the max time
+        foreach($coords['ART'] as $tmpArray)   $artArray[] = $tmpArray[1];
+        foreach($coords['MRT'] as $tmpArray)   $mrtArray[] = $tmpArray[1];
+        $y2Max = max($artArray)>max($mrtArray)? max($artArray):max($mrtArray);
+        $y2Max = $y2Max + $y2Max*0.1;
+        // find the y2 step
+        $y2Step = $y2Max / 8;
+
+        $xlabel = 'Time (Minutes)';
+        $ylabel = 'Bandwidth (MB/s)';
+        $y2label = 'Response Time (mS)';
+        $settings = array('xMin' => 0, 'xMax' => self::TOTAL_CYCLES, 'yMin' => 0, 'yMax' => $ymax,
+                          'height' => 600, 'nolinespoints' => TRUE, 
+                          'y2' => array('ART','MRT','label'=>$y2label,'max'=>$y2Max,'min'=>0,'step'=>$y2Step));
+        //Draw line chart
+        if ($coords) $content = $this->generateLineChart($dir, $section, $coords, $xlabel, $ylabel, NULL, $settings);
+        break;
+
+      case 'xsr-table':
+        foreach(array_keys($this->fio['wdpc']) as $i){
+          $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
+          if ($job && preg_match('/^x1/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {          
+            $bw[self::GROUP1][] = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $art[self::GROUP1][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'mean');
+            $mrt[self::GROUP1][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'max');
+
+          }elseif ($job && preg_match('/^x2/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {
+            $bw[self::GROUP2][] = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $art[self::GROUP2][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'mean');
+            $mrt[self::GROUP2][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'max');
+
+          }elseif ($job && preg_match('/^x3/', $job) && isset($this->fio['wdpc'][$i]['jobs'][0]['write'])) {
+            $bw[self::GROUP3][] = round($this->fio['wdpc'][$i]['jobs'][0]['write']['bw']/1024, 2);
+            $art[self::GROUP3][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'mean');
+            $mrt[self::GROUP3][] = $this->getLatency($this->fio['wdpc'][$i]['jobs'][0], 'max');
+          }
+        }
+
+        $tp1avg = array_sum($bw[self::GROUP1]) / count($bw[self::GROUP1]);
+        for($recovery=1; $recovery<=count($bw[self::GROUP3]); $recovery++){
+          if($bw[self::GROUP3][$recovery-1] >= $tp1avg ) {
+            break;
+          }
+        }
+
+        $content = '<table border="1" cellpadding="15" align="center"><tbody>';
+        $content .= '<tr align="center"><td colspan="2"> </td>';
+        $content .= sprintf("<td>PTS-%s</td>", $this->options['spec']=='enterprise'?'E':'C');
+        $content .= sprintf("<td>Recovery(Minutes)</td><td>%s</td></tr>", $recovery>count($bw[self::GROUP3])?'not yet':$recovery);
+        $content .= sprintf('<tr align="center"><td colspan="2">%s</td>',$this->options['spec']=='enterprise'?'WCD':'WCE');
+        $content .= '<td rowspan="2">8 hr<br>SEQ 1024K</td>';
+        $content .= '<td rowspan="2">6 hr<br>RND 8K</td>';
+        $content .= '<td rowspan="2">8 hr<br>SEQ 1024K</td></tr>';
+        $content .= '<tr align="center"><td colspan="2">T1Q32</td></tr>';
+        $content .= '<tr><td colspan="2">The end of TP MB/s</td><td style="text-align: right;">'.end($bw[self::GROUP1]).'</td><td style="text-align: right;">'.end($bw[self::GROUP2]).'</td><td style="text-align: right;">'.end($bw[self::GROUP3]).'</td></tr>';
+        $content .= '<tr><td colspan="2">ART mS (peak)</td><td style="text-align: right;">'.max($art[self::GROUP1]).'</td><td style="text-align: right;">'.max($art[self::GROUP2]).'</td><td style="text-align: right;">'.max($art[self::GROUP3]).'</td></tr>';
+        $content .= '<tr><td colspan="2">MRT mS (peak)</td><td style="text-align: right;">'.max($mrt[self::GROUP1]).'</td><td style="text-align: right;">'.max($mrt[self::GROUP2]).'</td><td style="text-align: right;">'.max($mrt[self::GROUP3]).'</td></tr>';
+        $content .= '</tbody></table>';
+        break;
+    }
+
+    return $content;
   }
 
   /**
@@ -177,10 +306,12 @@ class BlockStorageTestXsr extends BlockStorageTest {
   protected function getReportSections(){
     return array(
       'tp-time-all-access-groups' => 'TP vs. Time - All Access Groups',
-      'tp-time-all-1-2' => 'TP vs. Time - Groups 1 & 2',
-      'tp-time-all-2-3' => 'TP vs. Time - Groups 2 & 3',
-      'maximum-latency' => 'Maximum Latency vs. Time, All Access Groups',
-      'average-latency' => 'Average Latency vs. Time, All Access Groups'
+      // 'tp-time-all-1-2' => 'TP vs. Time - Groups 1 & 2',
+      // 'tp-time-all-2-3' => 'TP vs. Time - Groups 2 & 3',
+      // 'maximum-latency' => 'Maximum Latency vs. Time, All Access Groups',
+      // 'average-latency' => 'Average Latency vs. Time, All Access Groups',
+      'tp-lat-time' => 'Throughput, ART & MRT v Time',
+      'xsr-table' => 'TP, ART, MRT & BW Recovery Time'
     );
   }
 
@@ -293,7 +424,8 @@ class BlockStorageTestXsr extends BlockStorageTest {
   public function wdpc() {
     $status = NULL;
     print_msg(sprintf('Initiating workload dependent preconditioning and steady state for XSR test'), $this->verbose, __FILE__, __LINE__);
-    
+    $tc = 1;
+    $qd = 32;
     //Group 1 sequential 1024k 8Hr
     $max = BlockStorageTestXsr::BLOCK_STORAGE_TEST_XSR_SEQ_1024K_CYCLES;
     $bs = '1024k';
@@ -303,7 +435,8 @@ class BlockStorageTestXsr extends BlockStorageTest {
       $name = sprintf('x1-0_100-1024k-seq-n%d', $n);
       print_msg(sprintf('Executing XSR test iteration for round %d of %d, workload 0/100 and block size %s', $n, $max, $bs), $this->verbose, __FILE__, __LINE__);
       
-      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE);
+      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE,
+                      'numjobs' => $tc, 'iodepth'=> $qd);
       if ($fio = $this->fio($options, 'wdpc')) {
         print_msg(sprintf('XSR test iteration for round %d of %d, workload %s and block size %s was successful', $n, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
         $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];
@@ -323,7 +456,8 @@ class BlockStorageTestXsr extends BlockStorageTest {
       $name = sprintf('x2-0_100-8k-rnd-n%d', $n);
       print_msg(sprintf('Executing XSR test iteration for round %d of %d, workload 0/100 and block size %s', $n, $max, $bs), $this->verbose, __FILE__, __LINE__);
       
-      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE);
+      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE,
+                      'numjobs' => $tc, 'iodepth'=> $qd);
       if ($fio = $this->fio($options, 'wdpc')) {
         print_msg(sprintf('XSR test iteration for round %d of %d, workload %s and block size %s was successful', $n, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
         $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];
@@ -342,7 +476,8 @@ class BlockStorageTestXsr extends BlockStorageTest {
       $name = sprintf('x3-0_100-1024k-seq-n%d', $n);
       print_msg(sprintf('Executing XSR test iteration for round %d of %d, workload 0/100 and block size %s', $n, $max, $bs), $this->verbose, __FILE__, __LINE__);
       
-      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE);
+      $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => BlockStorageTestXsr::TEST_TIME, 'rw' => $rw, 'time_based' => FALSE,
+                      'numjobs' => $tc, 'iodepth'=> $qd);
       if ($fio = $this->fio($options, 'wdpc')) {
         print_msg(sprintf('XSR test iteration for round %d of %d, workload %s and block size %s was successful', $n, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
         $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];

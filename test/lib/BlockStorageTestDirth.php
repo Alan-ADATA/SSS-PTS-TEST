@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
+$dirth2wdpcComplete = 0;
 /**
  * Block storage test implementation for the Demand Intensity / Response Time 
  * Histogram test
@@ -87,7 +88,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
             if ($job && preg_match('/^x([0-9]+)\-0_100\-rand\-n01/', $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])) {
-              $round = $m[1]*1;
+              $round = (int)$m[1];
               $iops = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($round, $iops);
@@ -111,7 +112,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           foreach(array_keys($jobs) as $job) {
             if (preg_match($str, $job, $m) && isset($jobs[$job]['write']['iops'])) {
               if (!isset($coords['IOPS'])) $coords['IOPS'] = array();
-              $round = $m[1]*1;
+              $round = (int)$m[1];
               $coords['IOPS'][] = array($round, $jobs[$job]['write']['iops']);
               $iops[$round] = $jobs[$job]['write']['iops'];
             }
@@ -152,7 +153,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
             if ($job && preg_match('/^x([0-9]+)\-0_100\-rand\-prewrite/', $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])) {
-              $time = ($m[1]*1 - 1)*49 + self::DURATION;
+              $time = ((int)$m[1] - 1)*49 + self::DURATION;
               $iops = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($time, $iops);
@@ -175,8 +176,15 @@ class BlockStorageTestDirth extends BlockStorageTest {
         if($this->rw == 'dirth2'){  
 
           foreach(array_keys($jobs) as $job) {
+            if (preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD([0-9]+)/', $job, $m) && isset($jobs[$job]['write']['iops'])) {
+              $label = sprintf("TC=32,QD=%d", (int)$m[2]);
+              $round = (int)$m[1];
+              if (!isset($coords[$label])) $coords[$label] = array();
+              $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
+            }
+            /*
             $label = NULL;
-  
+            
             if (preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD32/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
               $label = 'TC=32,QD=32';            
             }
@@ -200,10 +208,10 @@ class BlockStorageTestDirth extends BlockStorageTest {
             }
             
             if($label !== NULL){
-              $round = $m[1]*1;
+              $round = (int)$m[1];
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
-            }  
+            }  */
           }
   
           $settings['lines'] = array(1 => "lt 2 lc rgb \"#004B97\" lw 3 pt 5",
@@ -232,16 +240,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $xTic = NULL;
             if(preg_match($str, $job, $m) && isset($jobs[$job]['write']['iops'])){
 
-              $tc = $m[1]*1;
-              $qd = $m[2]*1;
-
-              if($tc == 32) $label = 'TC=32';
-              elseif($tc == 16) $label = 'TC=16';
-              elseif($tc == 8) $label = 'TC=8';
-              elseif($tc == 6) $label = 'TC=6';
-              elseif($tc == 4) $label = 'TC=4';
-              elseif($tc == 2) $label = 'TC=2';
-              elseif($tc == 1) $label = 'TC=1';
+              $qd = (int)$m[2];
+              $label = sprintf("TC=%d", (int)$m[1]);
               
               /* gunplot x軸刻度用 "1"0, "2"2, "4"4, "8"6, "16"8, "32"10 ("A"B => A:顯示標籤 B:實際值)
               *  QD對應x軸 1=>0 2=>2 4=>4 6=>5 8=>6 16=>8 32=>10
@@ -287,20 +287,11 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
       case 'demand_intensity'://P7
         if($this->rw == 'dirth2'){
-          $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['dirth2']->wdpcComplete);
+          $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD[0-9]+/", $this->subtests['dirth2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             if(preg_match($str, $job, $m)){
-              $tc = $m[1]*1;
-              $qd = $m[2]*1;
 
-              if($tc == 32) $label = 'TC=32';
-              elseif($tc == 16) $label = 'TC=16';
-              elseif($tc == 8) $label = 'TC=8';
-              elseif($tc == 6) $label = 'TC=6';
-              elseif($tc == 4) $label = 'TC=4';
-              elseif($tc == 2) $label = 'TC=2';
-              elseif($tc == 1) $label = 'TC=1';
-
+              $label = sprintf("TC=%d", (int)$m[1]);
               $iops = $jobs[$job]['write']['iops'];
               $art = $jobs[$job]['write']['lat']['mean'] / 1000; //Average Response Time (ms)
 
@@ -338,8 +329,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['dirth2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             if(preg_match($str, $job, $m) && isset($jobs[$job]['sys_cpu'])){
-              $tc = $m[1]*1;
-              $qd = $m[2]*1;              
+              $tc = (int)$m[1];
+              $qd = (int)$m[2];              
               $data[$tc][$qd] = $jobs[$job]['sys_cpu'];
   
               if(count($data[$tc]) == 7)
@@ -381,7 +372,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
             if ($job && preg_match($str, $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])) {
-              $time = $m[2]*1;
+              $time = (int)$m[2];
               
               $iops = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
               if (!isset($coords[$label])) $coords[$label] = array();
@@ -419,13 +410,23 @@ class BlockStorageTestDirth extends BlockStorageTest {
             }
           }
 
-          $fdir = $this->options['output'];     
+          $fdir = dirname($dir);     
           $maxTime = 0;
 
-          for($n=1; $n<=10; $n++){  //10 mins
+          for($n=1; $n<=10; $n++){  //10 min
             for($x=1; $x<=$num; $x++){  //QD number will decide how many logs
               $fileName = sprintf("%s/dirth-fio-lat-%s-%d_lat.%d.log", $fdir, $type, $n, $x);
 
+              $fp = fopen($fileName, 'r');
+              if($fp){
+                while($line = fgets($fp)){
+                  $data = explode(",", $line);
+                  $time = round((trim($data[1]) /1000), 0);
+                  $count[$time] = (isset($count[$time]))? ++$count[$time] : 1;
+                }
+                fclose($fp);
+              }
+              /*
               if(file_exists($fileName)){
                 $fp = file($fileName);            
                 foreach($fp as $str){
@@ -435,10 +436,11 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
                     $count[$time] = (isset($count[$time]))? ++$count[$time] : 1;        
                 }
-              }
+              }*/
             }
           }
           ksort($count);
+          $maxTime = max(array_keys($count));
 
           //delete log files
           $fileName = sprintf("%s/dirth-fio-lat-%s*.log", $fdir, $type);                
@@ -465,16 +467,57 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $settings['xMax'] = $time + 20;
 
           if(preg_match('/^max/',$section)){
-            $title = sprintf("P10 Max IOPS Response Time Histogram, MRT=%.1f ms",$maxTime);
+            $title = sprintf("P10 Max IOPS Response Time Histogram, MRT=%d ms",$maxTime);
           }elseif(preg_match('/^mid/',$section)){
-            $title = sprintf("P12 Mid IOPS Response Time Histogram, MRT=%.1f ms",$maxTime);
+            $title = sprintf("P12 Mid IOPS Response Time Histogram, MRT=%d ms",$maxTime);
           }else{
-            $title = sprintf("P14 Min IOPS Response Time Histogram, MRT=%.1f ms",$maxTime);
+            $title = sprintf("P14 Min IOPS Response Time Histogram, MRT=%d ms",$maxTime);
           }
 
           $content = sprintf($this->plotTitle, $title);
           if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);        
           
+        }
+        break;
+
+      case 'oio':
+        if($this->rw == 'dirth3'){
+          global $dirth2wdpcComplete;
+          $jobs = array();
+          $coords['IOPS'] = array();
+          $coords['ART'] = array();
+  
+          $info = json_decode(file_get_contents(sprintf("%s/fio-dirth-dirth2.json",dirname($dir))),TRUE);
+          $jobs = $info['jobs'];
+  
+          $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $dirth2wdpcComplete);
+  
+          foreach($jobs as $job){
+            if (preg_match($str, $job['jobname'], $m)){
+              $totalOIO = (int)$m[1] * (int)$m[2];
+              $iopsArray[$totalOIO] = round($job['write']['iops'] + $job['read']['iops'], 2);
+              $artArray[$totalOIO] = round(($job['write']['clat']['mean']/1000 + $job['read']['clat']['mean']/1000) / 2, 2);
+            }
+          }
+  
+          ksort($iopsArray);
+          $i = 0;
+          foreach($iopsArray as $value){
+            $coords['IOPS'][] = array(++$i, $value);
+          }
+  
+          ksort($artArray);
+          $i = 0;
+          foreach($artArray as $value){
+            $coords['ART'][] = array(++$i, $value);
+          }
+  
+          $settings['y2tics'] = round(((max($artArray) - min($artArray)) / 7), 0);
+          $settings['TOTALOIO'] = TRUE;
+  
+          $title = 'P15 IOPS or BW v Total OIO';
+          $content = sprintf(self::plotTitle, $title);
+          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
         }
         break;
     }
@@ -503,7 +546,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
       'mid_iops_pre_writes' => 'Mid IOPS Pre Writes',
       'mid_iops_histogram' => 'Mid IOPS Histogram',
       'min_iops_pre_writes' => 'Min IOPS Pre Writes',
-      'min_iops_histogram' => 'Min IOPS Histogram');
+      'min_iops_histogram' => 'Min IOPS Histogram',
+      'oio' => 'IOPS v Total OIO');
   }
 
   /**
@@ -750,7 +794,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
                   
                   //shall be below 5 ms
                   if($art < 5){
-                    $tq = sprintf("%d_%d", $m[1]*1, $m[2]*1);
+                    $tq = sprintf("%d_%d", (int)$m[1], (int)$m[2]);
                     $tcqd[$tq] = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
           
                   }                  

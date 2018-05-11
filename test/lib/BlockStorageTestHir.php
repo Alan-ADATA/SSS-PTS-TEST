@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * Block storage test implementation for the Host Idle Recovery test

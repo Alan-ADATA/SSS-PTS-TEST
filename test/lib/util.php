@@ -1,5 +1,5 @@
 <?php
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * checks if the current user has sudo privileges. returns TRUE or FALSE
@@ -698,7 +698,7 @@ function get_sys_info() {
   unlink($tmpFile);
 
   //get fio version
-  $sys_info['fio_ver'] = str_replace('fio-','', shell_exec('fio -v'));
+  $sys_info['fio_ver'] = trim(str_replace('fio-','', shell_exec('fio -v')));
 
   return $sys_info;
 }

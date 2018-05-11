@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Mar 15, 2018 at 04:35 PM
--- Server version: 10.2.13-MariaDB-10.2.13+maria~xenial
--- PHP Version: 7.1.14-1+ubuntu16.04.1+deb.sury.org+1
+-- Generation Time: May 09, 2018 at 10:00 AM
+-- Server version: 10.2.14-MariaDB-10.2.14+maria~xenial
+-- PHP Version: 7.1.16-1+ubuntu16.04.1+deb.sury.org+1
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -47,7 +47,7 @@ CREATE TABLE `info` (
   `stime` datetime NOT NULL,
   `etime` datetime DEFAULT NULL,
   `type` enum('client','enterprise') COLLATE utf8_unicode_ci NOT NULL,
-  `item` set('IOPS','TP','LAT','WSAT','HIR','XSR','ECW','DIRTH') COLLATE utf8_unicode_ci NOT NULL,
+  `item` set('IOPS','TP','LAT','WSAT','HIR','XSR','CBW','DIRTH') COLLATE utf8_unicode_ci NOT NULL,
   `uID` mediumint(8) UNSIGNED NOT NULL,
   `ssd` text COLLATE utf8_unicode_ci NOT NULL,
   `report` text COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -128,23 +128,41 @@ CREATE TABLE `IOPS_report` (
 
 CREATE TABLE `LAT_report` (
   `info_no` int(10) UNSIGNED NOT NULL,
+  `latency_8k_100_0_iops` float UNSIGNED DEFAULT NULL,
   `latency_8k_100_0_mean` float UNSIGNED DEFAULT NULL,
+  `latency_8k_100_0_59s` float UNSIGNED DEFAULT NULL,
   `latency_8k_100_0_max` float UNSIGNED DEFAULT NULL,
+  `latency_8k_65_35_iops` float UNSIGNED DEFAULT NULL,
   `latency_8k_65_35_mean` float UNSIGNED DEFAULT NULL,
+  `latency_8k_65_35_59s` float UNSIGNED DEFAULT NULL,
   `latency_8k_65_35_max` float UNSIGNED DEFAULT NULL,
+  `latency_8k_0_100_iops` float UNSIGNED DEFAULT NULL,
   `latency_8k_0_100_mean` float UNSIGNED DEFAULT NULL,
+  `latency_8k_0_100_59s` float UNSIGNED DEFAULT NULL,
   `latency_8k_0_100_max` float UNSIGNED DEFAULT NULL,
+  `latency_4k_100_0_iops` float UNSIGNED DEFAULT NULL,
   `latency_4k_100_0_mean` float UNSIGNED DEFAULT NULL,
+  `latency_4k_100_0_59s` float UNSIGNED DEFAULT NULL,
   `latency_4k_100_0_max` float UNSIGNED DEFAULT NULL,
+  `latency_4k_65_35_iops` float UNSIGNED DEFAULT NULL,
   `latency_4k_65_35_mean` float UNSIGNED DEFAULT NULL,
+  `latency_4k_65_35_59s` float UNSIGNED DEFAULT NULL,
   `latency_4k_65_35_max` float UNSIGNED DEFAULT NULL,
+  `latency_4k_0_100_iops` float UNSIGNED DEFAULT NULL,
   `latency_4k_0_100_mean` float UNSIGNED DEFAULT NULL,
+  `latency_4k_0_100_59s` float UNSIGNED DEFAULT NULL,
   `latency_4k_0_100_max` float UNSIGNED DEFAULT NULL,
+  `latency_512b_100_0_iops` float UNSIGNED DEFAULT NULL,
   `latency_512b_100_0_mean` float UNSIGNED DEFAULT NULL,
+  `latency_512b_100_0_59s` float UNSIGNED DEFAULT NULL,
   `latency_512b_100_0_max` float UNSIGNED DEFAULT NULL,
+  `latency_512b_65_35_iops` float UNSIGNED DEFAULT NULL,
   `latency_512b_65_35_mean` float UNSIGNED DEFAULT NULL,
+  `latency_512b_65_35_59s` float UNSIGNED DEFAULT NULL,
   `latency_512b_65_35_max` float UNSIGNED DEFAULT NULL,
+  `latency_512b_0_100_iops` float UNSIGNED DEFAULT NULL,
   `latency_512b_0_100_mean` float UNSIGNED DEFAULT NULL,
+  `latency_512b_0_100_59s` float UNSIGNED DEFAULT NULL,
   `latency_512b_0_100_max` float UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

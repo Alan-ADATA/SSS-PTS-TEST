@@ -44,7 +44,7 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
     }elseif(!isset($_POST['test'])){
         ErrorMsg('test item');
         
-    }elseif($_POST['purge']<0 || $_POST['purge']>3){
+    }elseif($_POST['purge']<0 || $_POST['purge']>4){
         ErrorMsg('purge mode');
         
     }elseif($_POST['max_round']<5 || $_POST['max_round']>100){
@@ -58,6 +58,9 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
         
     }elseif ($_POST['dirth_bs']<1 || $_POST['dirth_bs']>65536) {
         ErrorMsg('DIRTH BS');
+
+    }elseif($_POST['wsat_wl']<0 || $_POST['wsat_wl']>4){
+        ErrorMsg('WSAT workload');
     }
 
     foreach($_POST['test'] as $item){
@@ -68,7 +71,7 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
             case 'wsat':
             case 'hir':
             case 'xsr':
-            case 'ecw':
+            case 'cbw':
             case 'dirth':
                 break;
     
@@ -89,11 +92,24 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
         $cmdstr.= ' --dirth_bs='.$_POST['dirth_bs'];
     }
 
+    if(in_array('wsat', $_POST['test'])){
+        $cmdstr.= ' --wsat_wl='.$_POST['wsat_wl'];
+        $cmdstr.= ' --wsat_time='.$_POST['wsat_time'];
+    }
+
+    if($_POST['spec'] == 0){
+        $cmdstr.= ' --spec=enterprise';
+    }else{
+        $cmdstr.= ' --spec=client';
+    }
+
     if($_POST['purge'] == 0){
         $cmdstr.= ' --nopurge';
     }elseif($_POST['purge'] == 1){
         $cmdstr.= ' --secureerase_pswd=pts';
         shell_exec(sprintf("sudo hdparm --user-master u --security-set-pass pts %s",$_POST['test']));
+    }elseif($_POST['purge'] == 4){
+        $cmdstr.= ' --nvmeformat=1';
     }
 
     if($_POST['verbose'] == 1){        
@@ -146,11 +162,11 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
     $db = array(
                 'no' => $newNo,
                 'stime' => $startTime,
-                'type' => 'enterprise',
+                'type' => $_POST['spec'] == 0? 'enterprise':'client',
                 'item' => implode(',', $itemArray),
                 'uid' => $_SESSION['uID'],
-                'ssd' => sprintf("<ul><li>Vendor:%s</li><li>Model:%s</li><li>SN:%s</li><li>FW ver:%s</li><li>Interface:%s</li><li>NAND type:%s</ul>", 
-                                $_POST['mfgr'], $_POST['modelno'], $_POST['sn'], $_POST['fwv'], $_POST['interface'], $_POST['nandtype']),
+                'ssd' => sprintf("<ul><li>Vendor:%s</li><li>Model:%s</li><li>Capacity:%s</li><li>SN:%s</li><li>FW ver:%s</li><li>Interface:%s</li><li>NAND type:%s</ul>", 
+                                $_POST['mfgr'], $_POST['modelno'], $_POST['capacity'], $_POST['sn'], $_POST['fwv'], $_POST['interface'], $_POST['nandtype']),
                 'report' => $new_folder,
                 'command' => $cmdstr);
 
@@ -224,7 +240,7 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
         //update finish time
         $sql_update = sprintf("UPDATE `info` SET `etime` = \"%s\" WHERE `info`.`no` = ?", date("Y-m-d H:i:s"));
         $stmtUpdate = $dbLink->prepare($sql_update);            
-        $stmtUpdate->execute(array($db['no']));
+        $stmtUpdate->execute(array($newNo));
 
         //delete check status
         $sql_delete =  sprintf("DELETE FROM `status` WHERE `status`.`time` = \"%s\"", $startTime);

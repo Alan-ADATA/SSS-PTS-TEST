@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// This file is modified by ADATA Technology Co., Ltd. on 2018.
+// This file is modified by ADATA Technology Co., Ltd. in 2018.
 
 /**
  * Block storage test implementation for the Throughput test
@@ -24,26 +24,21 @@ class BlockStorageTestThroughput extends BlockStorageTest {
    * the block size for this throughput test
    */
   private $bs = NULL;
-  
-  /**
-   * whether or not this test should purge and precondition prior to testing
-   */
-  private $purgeAndPrecondition = FALSE;
-  
+   
   /**
    * Constructor is protected to implement the singleton pattern using 
    * the BlockStorageTest::getTestController static method
    * @param array $options the test options
    */
-  protected function BlockStorageTestThroughput($options, $bs=NULL) {
+  protected function BlockStorageTestThroughput($options, $bs=NULL) {    
+    $this->skipWipc = TRUE;// not do here
     if ($bs === NULL) {
       foreach(array('1024k', '128k') as $bs) {
         if (!isset($options['skip_blocksize']) || !in_array($bs, $options['skip_blocksize'])) {
           $this->subtests[$bs] = new BlockStorageTestThroughput($options, $bs);
-          $this->subtests[$bs]->purgeAndPrecondition = count($this->subtests[$bs]) > 1;
           $this->subtests[$bs]->test = 'throughput';
           $this->subtests[$bs]->verbose = isset($options['verbose']) && $options['verbose'];
-          $this->subtests[$bs]->controller =& $this;
+          $this->subtests[$bs]->controller =& $this;          
         }
       }
     }
@@ -346,13 +341,14 @@ class BlockStorageTestThroughput extends BlockStorageTest {
     $status = NULL;
       
     if ($this->bs !== NULL) {
+      $this->skipWipc = FALSE;
       $bs = $this->bs;
       $status = NULL;
-      if ($this->purgeAndPrecondition) {
-        print_msg(sprintf('Repeating purge and workload independent preconditioning'), $this->verbose, __FILE__, __LINE__);
-        $this->purge();
-        $this->wipc($bs);
-      }
+
+      print_msg(sprintf('Repeating purge and workload independent preconditioning'), $this->verbose, __FILE__, __LINE__);
+      $this->purge();
+      $this->wipc($bs);
+
       print_msg(sprintf('Initiating %s workload dependent preconditioning and steady state for THROUGHPUT test', $this->bs), $this->verbose, __FILE__, __LINE__);
       $max = $this->options['ss_max_rounds'];
       $workloads = $this->filterWorkloads(array('100/0', '0/100'));
@@ -361,7 +357,7 @@ class BlockStorageTestThroughput extends BlockStorageTest {
         foreach($workloads as $rw) {
           $name = sprintf('x%d-%s-%s-seq', $x, str_replace('/', '_', $rw), $bs);
           print_msg(sprintf('Executing sequential THROUGHPUT test iteration for round %d of %d, workload %s and block size %s', $x, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
-          $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => $this->options['wd_test_duration'], 'rw' => $rw == '100/0' ? 'read' : 'write', 'time_based' => FALSE);
+          $options = array('blocksize' => $bs, 'name' => $name, 'runtime' => $this->options['wd_test_duration'], 'rw' => $rw == '100/0' ? 'read' : 'write', 'time_based' => FALSE, 'numjobs' => 1, 'iodepth' => 32);
           if ($fio = $this->fio($options, 'wdpc')) {
             print_msg(sprintf('Sequential THROUGHPUT test iteration for round %d of %d, workload %s and block size %s was successful', $x, $max, $rw, $bs), $this->verbose, __FILE__, __LINE__);
             $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];

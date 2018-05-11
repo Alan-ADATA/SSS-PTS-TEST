@@ -36,10 +36,10 @@ function GetSSDInfo($num)
 
     for($i=0; $i< $num; $i++){
         $value = "/dev/".$ssd[$i];
-        
-        if(preg_match("/sd/", $value)){
-            $valueArray = array();
+        $valueArray = array();
+        $valueArray['capacity'] = shell_exec(sprintf("lsblk -n -o size %s", $value));
 
+        if(preg_match("/sd/", $value)){
             $cmd = sprintf("sudo smartctl -i %s > %s", $value, $file_tmp);
             shell_exec($cmd);
             $fp = fopen($file_tmp, "r") or die("Unable to open file!");
@@ -65,15 +65,13 @@ function GetSSDInfo($num)
                     $valueArray['interface'] = str_replace("SATA Version is:  ", "", chop($txt));
                 }
             } 
-            $valueArray['nandtype'] = 'MLC';
+            $valueArray['nandtype'] = '3D TLC';
             $infoArray[$value] = $valueArray;
             unset($valueArray);
 
-        }else{  // PCIe
-            $valueArray = array();
+        }else{  // PCIe            
             $cmd = sprintf("sudo nvme id-ctrl %s > %s", $value, $file_tmp);
-            shell_exec($cmd);
-    
+            shell_exec($cmd);   
             
             $fp = fopen($file_tmp, "r") or die("Unable to open file!");
     
@@ -83,6 +81,9 @@ function GetSSDInfo($num)
                 if(preg_match("/mn/", $txt)){
                     $newtxt = explode(":", chop($txt));
                     $newtxt1 = explode(" ", trim($newtxt[1]));
+                    if($newtxt1[1] == NULL){
+                        $newtxt1 = explode("_", trim($newtxt[1])); 
+                    }
                     $valueArray['mfgr'] = $newtxt1[0];
                     $valueArray['modelno'] = $newtxt1[1];
                 }
@@ -97,7 +98,7 @@ function GetSSDInfo($num)
             }
 
             $valueArray['interface'] = 'PCIe 3.0 X4';
-            $valueArray['nandtype'] = 'MLC';
+            $valueArray['nandtype'] = '3D TLC';
             $infoArray[$value] = $valueArray;
             unset($valueArray);
         }
@@ -207,9 +208,13 @@ HTML;
             <td><input type='text' size="50" id='modelno' name='modelno' value=''></td>
         </tr>
         <tr>
+            <td>Capacity</td>
+            <td><input type='text' size="50" id='capacity' name='capacity' value='' ></td>
+        </tr>        
+        <tr>
             <td>S/N</td>
             <td><input type='text' size="50" id='sn' name='sn' value='' ></td>
-        </tr>
+        </tr>        
         <tr>
             <td>Firmware version</td>
             <td><input type='text' size="50" id='fwv' name='fwv' value='' ></td>
@@ -225,8 +230,13 @@ HTML;
             <td><div id="msg2" style="visibility:hidden; color:#FF0000">This field is entered by operator</div></td>
         </tr>
     </table>    
-    
     </p>
+
+    Specification type:
+    <input type='radio' name='spec' value=0 onclick=if(this.checked){SetTCQD(value)} checked><label>Enterprise</label>
+    <input type='radio' name='spec' value=1 onclick=if(this.checked){SetTCQD(value)}><label>Client</label>    
+    </p>
+
     Test item :
     <input type='checkbox' name='test[]' value='iops'><label>iops</label>
     <input type='checkbox' name='test[]' value='throughput'><label>throughput</label>
@@ -234,17 +244,18 @@ HTML;
     <input type='checkbox' name='test[]' value='wsat'><label>wsat</label>
     <input type='checkbox' name='test[]' value='hir'><label>hir</label>
     <input type='checkbox' name='test[]' value='xsr'><label>xsr</label>
-    <input type='checkbox' name='test[]' value='ecw'><label>ecw</label>
+    <input type='checkbox' name='test[]' value='cbw'><label>cbw</label>
     <input type='checkbox' name='test[]' value='dirth'><label>dirth</label>
-    
     </p>
+
     Purge mode:
     <input type='radio' name='purge' value=0><label>No purge</label>
-    <input type='radio' name='purge' value=1 checked><label>ATA secure erase</label>
+    <input id='sata' type='radio' name='purge' value=1><label>ATA secure erase</label>
+    <input id='nvme' type='radio' name='purge' value=4><label>NVMe format namespace</label>
     <input type='radio' name='purge' value=2><label>TRIM</label>
     <input type='radio' name='purge' value=3><label>zero fill</label>
-
     </p>
+
     Max test rounds:
     <select name='max_round'>
 <?php
@@ -257,7 +268,7 @@ HTML;
 
     TOIO:&nbsp; &nbsp; <font color='blue'>iops. throughput. wsat. hir. xsr by test operator choice</font></br>
     Thread Count:
-    <select name='tc'>
+    <select name='tc' id='tc'>
 <?php
     $tc = array(1,2,4,6,8,16,32);
     foreach($tc as $value){
@@ -266,15 +277,33 @@ HTML;
 ?>
     </select>&nbsp; &nbsp; 
     Queue Depth:
-    <select name='qd'>
+    <select name='qd' id='qd'>
 <?php
     $qd = array(1,2,4,6,8,16,32);
     foreach($qd as $value){
-        echo $showValue = sprintf("<option %s value='%d'>%d</option>", ($value==16)?'selected=\'true\'':'', $value, $value);
+        echo $showValue = sprintf("<option %s value='%d'>%d</option>", ($value==32)?'selected=\'true\'':'', $value, $value);
     }
 ?>
     </select></p>
-
+    WSAT test optional workload:
+    <select name='wsat_wl'>
+<?php
+    $wl = array('Write Intensive (RND 4KiB RW0)','Mixed or OLTP (RND 8KiB RW65)','Video On Demand (SEQ 128KiB RW90)',
+                'Meta Data (SEQ 0.5KiB RW50)','Composite Block Size Workload (mixed/composite BS/RW)');
+    var_dump($wl);            
+    foreach($wl as $key=>$value){
+        echo sprintf("<option %s value='%d'>%s</option>",($key==0)?'selected=\'true\'':'', $key, $value);
+    }
+?>
+    </select>&nbsp; &nbsp; 
+    WSAT test optional time period:
+    <select name='wsat_time'>
+<?php
+    for($i=6; $i<=24; $i++){
+        echo $showValue = sprintf("<option %s value='%d'>%d</option>", ($i==6)?'selected=\'true\'':'', $i, $i);     
+    }
+?>
+    </select>Hr</p>
     DIRTH test parameter&nbsp; &nbsp; <font color='blue'>dirth test read write percentage and block size by test operator choice</font></br>
     RW: Read
     <select name='dirth_rw'>
@@ -319,14 +348,33 @@ HTML;
         document.getElementById("fwv").value = info[device].fwv;
         document.getElementById("interface").value = info[device].interface;
         document.getElementById("nandtype").value = info[device].nandtype;
+        document.getElementById("capacity").value = info[device].capacity;
         
-        if(device.indexOf("sd")){
-            document.getElementById("msg1").style.visibility = "hidden";            
-        }else{            
-            document.getElementById("msg1").style.visibility = "visible";
+        if(device.indexOf("/dev/sd")){
+            //nvme device
+            document.getElementById("msg1").style.visibility = "visible"; 
+            document.getElementById("sata").disabled = true;
+            document.getElementById("nvme").disabled = false;
+            document.getElementById("nvme").checked = true;
+        }else{
+            //sata device
+            document.getElementById("msg1").style.visibility = "hidden";
+            document.getElementById("sata").disabled = false;
+            document.getElementById("nvme").disabled = true;
+            document.getElementById("sata").checked = true;
         }
 
         document.getElementById("msg2").style.visibility = "visible";
+    }
+
+    function SetTCQD(value){
+        if(value == 0){
+            document.getElementById("tc").value = 4;
+            document.getElementById("qd").value = 32;
+        }else{
+            document.getElementById("tc").value = 2;
+            document.getElementById("qd").value = 16;
+        }
     }
     </script>
 
