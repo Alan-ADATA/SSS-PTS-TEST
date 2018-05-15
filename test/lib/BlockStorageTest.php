@@ -2413,6 +2413,7 @@ abstract class BlockStorageTest {
           set boxwidth 0.5
           set grid ytics lc rgb '#000000' lw 1 lt 0
           set tic scale 0
+          set grid noxtics
           plot \"%s\" using 1:2 with boxes lc rgb '#2894ff' t 'IOPS',\
           \"\" using 1:2:2 w labels center offset 0,1 notitle,\
           \"\" using 3:4 axes x1y2 w lp t 'ART' ls 1,\

@@ -37,7 +37,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
    * 30%    Next 15%         LBA Group B
    * 20%    Remaining 80%    LBA Group C
    */
-  const ZONE = 'zoned:50/5:30/15:20/80'; 
+  const ZONE = 'zoned:50/5:30/15:20/80';
   const CBW_MAX_ROUND = 25;
   const BLOCK_STORAGE_TEST_CBW_PRECONDITION_INTERVALS = 30;
   const DURATION = 5;
@@ -74,7 +74,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
   }
 
   /**
-   * overrides the parent method in order to write jason files for 0/100 
+   * overrides the parent method in order to write jason files for 0/100
    * and 40/60 workloads separately
    */
   public function generateJson($dir=NULL, $suffix=NULL) {
@@ -103,7 +103,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
     switch($section){
       case 'pre_iops'://P1
-        if($this->rw == 'cbw1'){  
+        if($this->rw == 'cbw1'){
           $label = 'Pre-Writes, BS=CBWAP';
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
@@ -116,19 +116,19 @@ class BlockStorageTestCbw extends BlockStorageTest {
           }
 
           $title = 'P1 TC32-QD32, IOPS vs Round';
-          $content = sprintf(self::plotTitle, $title); 
-          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));      
+          $content = sprintf(self::plotTitle, $title);
+          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
         
         break;
 
       case 'pre_steady_state'://P2
       case 'dv_steady_state'://P5
-        if($this->rw == 'cbw1' || $this->rw == 'cbw2'){  
+        if($this->rw == 'cbw1' || $this->rw == 'cbw2'){
           $iops = array();
 
-          $str = ($section == 'pre_steady_state') ? '/^x([0-9]+)\-0_100\-rand\-n01/': '/^x([0-9]+)\-40_60\-rand\-TC32\-QD32/';          
-          
+          $str = ($section == 'pre_steady_state') ? '/^x([0-9]+)\-0_100\-rand\-n01/': '/^x([0-9]+)\-40_60\-rand\-TC32\-QD32/';
+
           foreach(array_keys($jobs) as $job) {
             if (preg_match($str, $job, $m) && isset($jobs[$job]['write']['iops'])) {
               if (!isset($coords['IOPS'])) $coords['IOPS'] = array();
@@ -160,16 +160,16 @@ class BlockStorageTestCbw extends BlockStorageTest {
             $settings['xMin'] = '10%';
             $settings['yMin'] = '20%';
 
-            $title = ($section == 'pre_steady_state') ? 'P2 PC Steady State Check TC32-QD32' : 'P5 Demand Variation Steady State Check TC32-QD32';
-            $content = sprintf(self::plotTitle, $title); 
+            $title = ($section == 'pre_steady_state') ? 'P2 WIPC Steady State Check TC32-QD32' : 'P5 Demand Variation Steady State Check TC32-QD32';
+            $content = sprintf(self::plotTitle, $title);
             $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
           }
         }
-        
-        break;      
-      
+
+        break;
+
       case 'between_round'://P3
-        if($this->rw == 'cbw2'){  
+        if($this->rw == 'cbw2'){
           $label = 'Between Round Pre-Writes, BS=CBWAP';
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
@@ -180,17 +180,13 @@ class BlockStorageTestCbw extends BlockStorageTest {
               $coords[$label][] = array($time, $iops);
             }
           }
-  
-          $settings = array(
-                            'xMin' => 0,
-                            'yMin' => 0,
-                            'pointColor' => 'blue');
-          
+
+          $settings = array('xMin' => 0, 'yMin' => 0, 'pointColor' => 'blue');
           $title = 'P3 Between Round Pre-Writes';
-          $content = sprintf(self::plotTitle, $title);                            
-          $content .= $this->generatePointChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, $settings);          
+          $content = sprintf(self::plotTitle, $title);
+          $content .= $this->generatePointChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, $settings);
         }
-        
+
         break;
 
       case 'dv_iops'://P4
@@ -203,37 +199,8 @@ class BlockStorageTestCbw extends BlockStorageTest {
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
             }
-            /*
-            $label = NULL;
-            if (preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD32/', $job, $m) && isset($jobs[$job]['write']['iops'])) {
-              $label = 'TC=32,QD=32';            
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD16/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=16';
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD8/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=8';
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD6/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=6';
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD4/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=4';
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD2/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=2';
-            }
-            elseif(preg_match('/^x([0-9]+)\-40_60\-rand\-TC32\-QD1/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=1';
-            }
-            
-            if($label !== NULL){
-              $round = $m[1]*1;
-              if (!isset($coords[$label])) $coords[$label] = array();
-              $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
-            }*/  
           }
-  
+
           $settings['lines'] = array(1 => "lt 2 lc rgb \"#004B97\" lw 3 pt 5",
                                      2 => "lt 2 lc rgb \"#AE0000\" lw 3 pt 5",
                                      3 => "lt 2 lc rgb \"#009100\" lw 3 pt 5",
@@ -247,13 +214,13 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
           $title = 'P4 TC=32 IOPS vs Round, All QD';
           $content = sprintf(self::plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);          
+          $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
         }
- 
+
         break;
 
       case 'demand_variation'://P6
-        if($this->rw == 'cbw2'){  
+        if($this->rw == 'cbw2'){
           $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['cbw2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             $label = NULL;
@@ -281,7 +248,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
                 if(count($coords[$label]) == 7) {
                     $coords[$label] = array_reverse($coords[$label]);
                 }
-              }              
+              }
             }
           }
 
@@ -300,13 +267,13 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
           $title = 'P6 CBWT Demand Variation';
           $content = sprintf(self::plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'Queue Depth', 'IOPS', NULL, $settings);        
+          $content .= $this->generateLineChart($dir, $section, $coords, 'Queue Depth', 'IOPS', NULL, $settings);
         }
  
         break;
 
       case 'demand_intensity'://P7
-        if($this->rw == 'cbw2'){  
+        if($this->rw == 'cbw2'){
           $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['cbw2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             if(preg_match($str, $job, $m)){
@@ -317,7 +284,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
               if (!isset($coords[$label])){
                 $coords[$label] = array();
-              }                
+              }
 
               $coords[$label][] = array($iops, $art);
 
@@ -340,21 +307,21 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
           $title = 'P7 CBWT Demand Intensity';
           $content = sprintf(self::plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'IOPS', 'Time (ms)', NULL, $settings); 
+          $content .= $this->generateLineChart($dir, $section, $coords, 'IOPS', 'Time (ms)', NULL, $settings);
         }
         break;
 
       case 'system_cpu'://P8 3D
-        if($this->rw == 'cbw2'){  
+        if($this->rw == 'cbw2'){
           $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['cbw2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             if(preg_match($str, $job, $m) && isset($jobs[$job]['sys_cpu'])){
               $tc = (int)$m[1];
-              $qd = (int)$m[2];              
+              $qd = (int)$m[2];
               $data[$tc][$qd] = $jobs[$job]['sys_cpu'];
   
               if(count($data[$tc]) == 7)
-                ksort($data[$tc]);                         
+                ksort($data[$tc]);
             }
           }
           ksort($data);
@@ -366,16 +333,16 @@ class BlockStorageTestCbw extends BlockStorageTest {
           $stack = 0;
           foreach($data as $tc => $value){
             $x = 0;
-            foreach($data[$tc] as $qd => $cpu){              
+            foreach($data[$tc] as $qd => $cpu){
               if (!isset($series[$stack])) $series[$stack] = array('data' => array(), 'name' => sprintf("TC=%d",$tc), 'stack' => $stack);
               $series[$stack]['data'][] = array('x' => $x++, 'y' => $cpu);
             }
             $stack++;
           }
-  
+
           $title = 'P8 System CPU Utilization During Demand Variation Test';
           $content = sprintf(self::plotTitle, $title);
-          $content .= $this->generate3dChart($section, $series, $settings, 'Thread Count');          
+          $content .= $this->generate3dChart($section, $series, $settings, 'Thread Count');
         }
 
         break;
@@ -383,16 +350,16 @@ class BlockStorageTestCbw extends BlockStorageTest {
       case 'max_iops_pre_writes'://P9
       case 'mid_iops_pre_writes'://P11
       case 'min_iops_pre_writes'://P13
-        if($this->rw == 'cbw3'){  
+        if($this->rw == 'cbw3'){
           $type = strtoupper(substr($section,0,3));
           $str = sprintf("/^x([0-9]+)\-0_100\-rand\-n([0-9]+)\-TC[0-9]+\-QD[0-9]+\-%s/",$type);
           $label = 'IOPS';
-          
+
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
             if ($job && preg_match($str, $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])) {
               $time = (int)$m[2];
-              
+
               $iops = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($time, $iops);
@@ -401,14 +368,14 @@ class BlockStorageTestCbw extends BlockStorageTest {
 
           $title = preg_match('/^max/',$section)? 'P9 MaxIOPS Pre-Writes':(preg_match('/^mid/',$section)?'P11 MidIOPS Pre-Writes':'P13 MinIOPS Pre-Writes');
           $content = sprintf(self::plotTitle, $title);
-          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));      
+          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
         break;
 
       case 'max_iops_histogram'://P10
       case 'mid_iops_histogram'://P12
       case 'min_iops_histogram'://P14
-        if($this->rw == 'cbw3'){  
+        if($this->rw == 'cbw3'){
           $type = substr($section,0,3);
 
           global $tcqdArray;
@@ -429,7 +396,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
             }
           }
 
-          $fdir = dirname($dir);     
+          $fdir = dirname($dir);
           $maxTime = 0;
 
           for($n=1; $n<=10; $n++){  //10 min
@@ -451,7 +418,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
           $maxTime = max(array_keys($count));
 
           //delete log files
-          $fileName = sprintf("%s/cbw-fio-lat-%s*.log", $fdir, $type);                
+          $fileName = sprintf("%s/cbw-fio-lat-%s*.log", $fdir, $type);
           exec("rm -f $fileName");
 
           //write job metrics to output file
@@ -483,46 +450,51 @@ class BlockStorageTestCbw extends BlockStorageTest {
           }
 
           $content = sprintf(self::plotTitle, $title);
-          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);        
-          
+          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
+
         }
         break;
 
     case 'oio':
       if($this->rw == 'cbw3'){
-        global $cbw2wdpcComplete;
-        $jobs = array();
-        $coords['IOPS'] = array();
-        $coords['ART'] = array();
-
         $info = json_decode(file_get_contents(sprintf("%s/fio-cbw-cbw2.json",dirname($dir))),TRUE);
-        $jobs = $info['jobs'];
 
-        $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $cbw2wdpcComplete);
+        if($info != NULL){
+          global $cbw2wdpcComplete;
+          $coords['IOPS'] = array();
+          $coords['ART'] = array();
+          $jobs = $info['jobs'];
 
-        foreach($jobs as $job){
-          if (preg_match($str, $job['jobname'], $m)){
-            $totalOIO = (int)$m[1] * (int)$m[2];
-            $iopsArray[$totalOIO] = round($job['write']['iops'] + $job['read']['iops'], 2);
-            $artArray[$totalOIO] = round(($job['write']['clat']['mean']/1000 + $job['read']['clat']['mean']/1000) / 2, 2);
+          $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $cbw2wdpcComplete);
+  
+          foreach($jobs as $job){
+            if (preg_match($str, $job['jobname'], $m)){
+              $totalOIO = (int)$m[1] * (int)$m[2];
+              $iopsArray[$totalOIO] = round($job['write']['iops'] + $job['read']['iops'], 2);
+              $artArray[$totalOIO] = round(($job['write']['clat']['mean']/1000 + $job['read']['clat']['mean']/1000) / 2, 2);
+            }
           }
-        }
 
-        ksort($iopsArray);
-        $i = 0;
-        foreach($iopsArray as $value){
-          $coords['IOPS'][] = array(++$i, $value);
-        }
+          if(isset($iopsArray)){
+            ksort($iopsArray);
+            $i = 0;
+            foreach($iopsArray as $value){
+              $coords['IOPS'][] = array(++$i, $value);
+            }
+          }
+  
+          if(isset($artArray)){
+            ksort($artArray);
+            $i = 0;
+            foreach($artArray as $value){
+              $coords['ART'][] = array(++$i, $value);
+            }
 
-        ksort($artArray);
-        $i = 0;
-        foreach($artArray as $value){
-          $coords['ART'][] = array(++$i, $value);
-        }
+            $settings['y2tics'] = round(((max($artArray) - min($artArray)) / 7), 0);
+          }
+        }//end if($info != NULL)
 
-        $settings['y2tics'] = round(((max($artArray) - min($artArray)) / 7), 0);
         $settings['TOTALOIO'] = TRUE;
-
         $title = 'P15 IOPS or BW v Total OIO';
         $content = sprintf(self::plotTitle, $title);
         if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
@@ -569,7 +541,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
     if (isset($this->controller)) return $this->controller->getSetupParameters();
     else {
       return array(        
-        'Pre Condition 1' => 'b',
+        'Pre Condition 1' => 'CBW',
         '&nbsp;&nbsp;R/W %' => '0/100',
         '&nbsp;&nbsp;TOIO - TC/QD' => 'TC 32 / QD 32',
         '&nbsp;&nbsp;SS Rounds' => $this->subtests['cbw1']->wdpc !== NULL ? sprintf('%d - %d', $this->subtests['cbw1']->wdpcComplete - 4, $this->subtests['cbw1']->wdpcComplete) : 'N/A',
@@ -651,7 +623,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
         /**
          * Test Flow 2.2 use R/W = 0/100
          * step 1: TC32/QD32 max 25 rounds, every round 30 minutes
-         * use 1. 31 . 61. 91...to get steady state
+         * use 1. 31 . 61. 91...to check steady state
          */
 
         print_msg(sprintf('Initiating workload dependent preconditioning and steady state for CBW test'), $this->verbose, __FILE__, __LINE__);
@@ -792,7 +764,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
               $status = TRUE;
 
 
-              // *** Test Flow 5 find the Max and Mid IOPS ***
+              // *** Test Flow 5 find out the Max and Mid IOPS ***
 
               foreach(array_keys($this->fio['wdpc']) as $i){
                 $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
@@ -913,7 +885,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
               }
             }// end foreach($tests as $rw)
 
-            $x = ($x == count($tcqdArray['CBW']))? $x : ++$x;            
+            $x = ($x == count($tcqdArray['CBW']))? $x : ++$x;
           }//end foreach($tcqdArray['CBW'] as $type => $value)
           
           $this->wdpcComplete = $x;
@@ -934,8 +906,7 @@ class BlockStorageTestCbw extends BlockStorageTest {
       }
     }
 
-    return $status;    
+    return $status;
   }
-
 }
 ?>

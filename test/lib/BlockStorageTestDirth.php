@@ -1,12 +1,12 @@
 <?php
 // Copyright 2014 CloudHarmony Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,27 +15,25 @@
 //
 // This file is modified by ADATA Technology Co., Ltd. in 2018.
 
-$dirth2wdpcComplete = 0;
 /**
- * Block storage test implementation for the Demand Intensity / Response Time 
+ * Block storage test implementation for the Demand Intensity / Response Time
  * Histogram test
  */
+$dirth2wdpcComplete = 0;
 class BlockStorageTestDirth extends BlockStorageTest {
-
   const DIRTH_MAX_ROUND = 25;
   const BLOCK_STORAGE_TEST_DIRTH_PRECONDITION_INTERVALS = 30;
   const DURATION = 5;
-  private $plotTitle = "<h1 style=\"text-align: center;\">%s</h1>"; 
+  const plotTitle = "<h1 style=\"text-align: center;\">%s</h1>";
 
   /**
-   * Constructor is protected to implement the singleton pattern using 
+   * Constructor is protected to implement the singleton pattern using
    * the BlockStorageTest::getTestController static method
    * @param array $options the test options
    */
   protected function BlockStorageTestDirth($options, $rw=NULL) {
-
     if ($rw === NULL) {
-      foreach(array('dirth1','dirth2','dirth3') as $rw) { 
+      foreach(array('dirth1','dirth2','dirth3') as $rw) {
           $this->subtests[$rw] = new BlockStorageTestDirth($options, $rw);
           $this->subtests[$rw]->test = 'dirth';
           $this->subtests[$rw]->verbose = isset($options['verbose']) && $options['verbose'];
@@ -55,7 +53,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
   }
 
   /**
-   * overrides the parent method in order to write jason files for 0/100 
+   * overrides the parent method in order to write jason files for 0/100
    * and RW1 workloads separately
    */
   public function generateJson($dir=NULL, $suffix=NULL) {
@@ -66,14 +64,14 @@ class BlockStorageTestDirth extends BlockStorageTest {
   }
 
   /**
-   * this sub-class method should return the content associated with $section 
-   * using the $jobs given (or all jobs in $this->fio['wdpc']). Return value 
-   * should be HTML that can be imbedded into the report. The HTML may include 
+   * this sub-class method should return the content associated with $section
+   * using the $jobs given (or all jobs in $this->fio['wdpc']). Return value
+   * should be HTML that can be imbedded into the report. The HTML may include
    * an image reference without any directory path (e.g. <img src="iops.png>")
    * returns NULL on error, FALSE if not content required
-   * @param string $section the section identifier provided by 
+   * @param string $section the section identifier provided by
    * $this->getReportSections()
-   * @param array $jobs all fio job results occuring within the steady state 
+   * @param array $jobs all fio job results occuring within the steady state
    * measurement window. This is a hash indexed by job name
    * @param string $dir the directory where any images should be generated in
    * @return string
@@ -82,8 +80,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
     $content = NULL;
     switch($section){
       case 'pre_iops'://P1
-        if($this->rw == 'dirth1'){  
-          
+        if($this->rw == 'dirth1'){
+
           $label = sprintf("Pre-Writes, BS=RND %s", $this->ShowBlockSize($this->options['dirth_bs']));
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
@@ -96,19 +94,19 @@ class BlockStorageTestDirth extends BlockStorageTest {
           }
 
           $title = 'P1 TC32-QD32, IOPS vs Round';
-          $content = sprintf($this->plotTitle, $title); 
-          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));      
+          $content = sprintf($this->plotTitle, $title);
+          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
-        
+
         break;
 
       case 'pre_steady_state'://P2
       case 'dv_steady_state'://P5
-        if($this->rw == 'dirth1' || $this->rw == 'dirth2'){  
+        if($this->rw == 'dirth1' || $this->rw == 'dirth2'){
           $iops = array();
 
-          $str = ($section == 'pre_steady_state') ? '/^x([0-9]+)\-0_100\-rand\-n01/': '/^x([0-9]+)\-RW1\-rand\-TC32\-QD32/';          
-          
+          $str = ($section == 'pre_steady_state') ? '/^x([0-9]+)\-0_100\-rand\-n01/': '/^x([0-9]+)\-RW1\-rand\-TC32\-QD32/';
+
           foreach(array_keys($jobs) as $job) {
             if (preg_match($str, $job, $m) && isset($jobs[$job]['write']['iops'])) {
               if (!isset($coords['IOPS'])) $coords['IOPS'] = array();
@@ -128,7 +126,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $coords['110% Average'] = array(array($first, round($avg*1.1)), array($last, round($avg*1.1)));
             $coords['90% Average'] = array(array($first, round($avg*0.9)), array($last, round($avg*0.9)));
             $coords['Slope'] = array(array($first, $iops[$first]), array($last, $iops[$last]));
-            
+
             $settings = array();
             $settings['lines'] = array(1 => "lt 1 lc rgb \"blue\" lw 3 pt 5",
                                       2 => "lt 1 lc rgb \"black\" lw 3 pt -1",
@@ -139,16 +137,16 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $settings['yMin'] = '20%';
 
             $title = ($section == 'pre_steady_state') ? 'P2 PC Steady State Check TC32-QD32' : 'P5 Demand Variation Steady State Check TC32-QD32';
-            $content = sprintf($this->plotTitle, $title); 
+            $content = sprintf($this->plotTitle, $title);
             $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
           }
         }
-        
-        break;      
-      
+
+        break;
+
       case 'between_round'://P3
-        if($this->rw == 'dirth2'){  
-          
+        if($this->rw == 'dirth2'){
+
           $label = sprintf("Between Round Pre-Writes, BS=%s", $this->ShowBlockSize($this->options['dirth_bs']));
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
@@ -159,21 +157,21 @@ class BlockStorageTestDirth extends BlockStorageTest {
               $coords[$label][] = array($time, $iops);
             }
           }
-  
+
           $settings = array(
                             'xMin' => 0,
                             'yMin' => 0,
                             'pointColor' => 'blue');
-          
+
           $title = 'P3 Between Round Pre-Writes';
-          $content = sprintf($this->plotTitle, $title);                            
-          $content .= $this->generatePointChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, $settings);          
+          $content = sprintf($this->plotTitle, $title);
+          $content .= $this->generatePointChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, $settings);
         }
-        
+
         break;
 
       case 'dv_iops'://P4
-        if($this->rw == 'dirth2'){  
+        if($this->rw == 'dirth2'){
 
           foreach(array_keys($jobs) as $job) {
             if (preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD([0-9]+)/', $job, $m) && isset($jobs[$job]['write']['iops'])) {
@@ -182,38 +180,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
             }
-            /*
-            $label = NULL;
-            
-            if (preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD32/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=32';            
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD16/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=16';
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD8/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=8';
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD6/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=6';
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD4/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=4';
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD2/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=2';
-            }
-            elseif(preg_match('/^x([0-9]+)\-RW1\-rand\-TC32\-QD1/', $job, $m) && isset($jobs[$job]['write']['iops'])) {            
-              $label = 'TC=32,QD=1';
-            }
-            
-            if($label !== NULL){
-              $round = (int)$m[1];
-              if (!isset($coords[$label])) $coords[$label] = array();
-              $coords[$label][] = array($round, $jobs[$job]['write']['iops']);
-            }  */
           }
-  
+
           $settings['lines'] = array(1 => "lt 2 lc rgb \"#004B97\" lw 3 pt 5",
                                      2 => "lt 2 lc rgb \"#AE0000\" lw 3 pt 5",
                                      3 => "lt 2 lc rgb \"#009100\" lw 3 pt 5",
@@ -227,9 +195,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
           $title = 'P4 TC=32 IOPS vs Round, All QD';
           $content = sprintf($this->plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);          
+          $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
         }
- 
+
         break;
 
       case 'demand_variation'://P6
@@ -242,7 +210,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
               $qd = (int)$m[2];
               $label = sprintf("TC=%d", (int)$m[1]);
-              
+
               /* gunplot x軸刻度用 "1"0, "2"2, "4"4, "8"6, "16"8, "32"10 ("A"B => A:顯示標籤 B:實際值)
               *  QD對應x軸 1=>0 2=>2 4=>4 6=>5 8=>6 16=>8 32=>10
               */
@@ -257,11 +225,11 @@ class BlockStorageTestDirth extends BlockStorageTest {
               if($label !== NULL && $xTic !== NULL){
                 if (!isset($coords[$label])) $coords[$label] = array();
                 $coords[$label][] = array($xTic, $jobs[$job]['write']['iops']);
-  
+
                 if(count($coords[$label]) == 7) {
                     $coords[$label] = array_reverse($coords[$label]);
                 }
-              }              
+              }
             }
           }
 
@@ -280,9 +248,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
           $title = sprintf("P6 RND %s, RW=%d/%d Demand Variation", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
           $content = sprintf($this->plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'Queue Depth', 'IOPS', NULL, $settings);        
+          $content .= $this->generateLineChart($dir, $section, $coords, 'Queue Depth', 'IOPS', NULL, $settings);
         }
- 
+
         break;
 
       case 'demand_intensity'://P7
@@ -297,7 +265,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
               if (!isset($coords[$label])){
                 $coords[$label] = array();
-              }                
+              }
 
               $coords[$label][] = array($iops, $art);
 
@@ -320,26 +288,25 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
           $title = sprintf("P7 RND %s RW=%d/%d Demand Intensity", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
           $content = sprintf($this->plotTitle, $title);
-          $content .= $this->generateLineChart($dir, $section, $coords, 'IOPS', 'Time (ms)', NULL, $settings); 
+          $content .= $this->generateLineChart($dir, $section, $coords, 'IOPS', 'Time (ms)', NULL, $settings);
         }
         break;
 
       case 'system_cpu'://P8 3D
-        if($this->rw == 'dirth2'){  
+        if($this->rw == 'dirth2'){
           $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD([0-9]+)/", $this->subtests['dirth2']->wdpcComplete);
           foreach(array_keys($jobs) as $job){
             if(preg_match($str, $job, $m) && isset($jobs[$job]['sys_cpu'])){
               $tc = (int)$m[1];
-              $qd = (int)$m[2];              
+              $qd = (int)$m[2];
               $data[$tc][$qd] = $jobs[$job]['sys_cpu'];
-  
+
               if(count($data[$tc]) == 7)
                 ksort($data[$tc]);
-                         
             }
           }
           ksort($data);
-  
+
           $qdArray = array('1','2','4','6','8','16','32');
           $series = array();
           $settings = array('xAxis' => array('categories' => $qdArray, 'title' => array('text' => 'Queue Depth')),
@@ -347,16 +314,16 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $stack = 0;
           foreach($data as $tc => $value){
             $x = 0;
-            foreach($data[$tc] as $qd => $cpu){              
+            foreach($data[$tc] as $qd => $cpu){
               if (!isset($series[$stack])) $series[$stack] = array('data' => array(), 'name' => sprintf("TC=%d",$tc), 'stack' => $stack);
               $series[$stack]['data'][] = array('x' => $x++, 'y' => $cpu);
             }
             $stack++;
           }
-  
+
           $title = 'P8 System CPU Utilization During Demand Variation Test';
           $content = sprintf($this->plotTitle, $title);
-          $content .= $this->generate3dChart($section, $series, $settings, 'Thread Count');          
+          $content .= $this->generate3dChart($section, $series, $settings, 'Thread Count');
         }
 
         break;
@@ -368,12 +335,12 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $type = strtoupper(substr($section,0,3));
           $str = sprintf("/^x([0-9]+)\-0_100\-rand\-n([0-9]+)\-TC[0-9]+\-QD[0-9]+\-%s/",$type);
           $label = 'IOPS';
-          
+
           foreach(array_keys($this->fio['wdpc']) as $i) {
             $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
             if ($job && preg_match($str, $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])) {
               $time = (int)$m[2];
-              
+
               $iops = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
               if (!isset($coords[$label])) $coords[$label] = array();
               $coords[$label][] = array($time, $iops);
@@ -382,14 +349,14 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
           $title = preg_match('/^max/',$section)? 'P9 MaxIOPS Pre-Writes':(preg_match('/^mid/',$section)?'P11 MidIOPS Pre-Writes':'P13 MinIOPS Pre-Writes');
           $content = sprintf($this->plotTitle, $title);
-          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));      
+          if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
         break;
 
       case 'max_iops_histogram'://P10
       case 'mid_iops_histogram'://P12
       case 'min_iops_histogram'://P14
-        if($this->rw == 'dirth3'){          
+        if($this->rw == 'dirth3'){
           $type = substr($section,0,3);
 
           global $tcqdArray;
@@ -410,7 +377,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
             }
           }
 
-          $fdir = dirname($dir);     
+          $fdir = dirname($dir);
           $maxTime = 0;
 
           for($n=1; $n<=10; $n++){  //10 min
@@ -426,24 +393,13 @@ class BlockStorageTestDirth extends BlockStorageTest {
                 }
                 fclose($fp);
               }
-              /*
-              if(file_exists($fileName)){
-                $fp = file($fileName);            
-                foreach($fp as $str){
-                    $data = explode(",", $str);
-                    $time = round((trim($data[1]) /1000), 0);
-                    $maxTime = (round((trim($data[1]) /1000), 1) > $maxTime)? round((trim($data[1]) /1000), 1) : $maxTime;
-
-                    $count[$time] = (isset($count[$time]))? ++$count[$time] : 1;        
-                }
-              }*/
             }
           }
           ksort($count);
           $maxTime = max(array_keys($count));
 
           //delete log files
-          $fileName = sprintf("%s/dirth-fio-lat-%s*.log", $fdir, $type);                
+          $fileName = sprintf("%s/dirth-fio-lat-%s*.log", $fdir, $type);
           exec("rm -f $fileName");
 
           //write job metrics to output file
@@ -463,7 +419,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           for($time=0; $time<=max(array_keys($count)); $time++){
             $coords[$time] = (array_key_exists($time, $count)) ? $count[$time] : 0;
           }
-          
+
           $settings['xMax'] = $time + 20;
 
           if(preg_match('/^max/',$section)){
@@ -475,47 +431,52 @@ class BlockStorageTestDirth extends BlockStorageTest {
           }
 
           $content = sprintf($this->plotTitle, $title);
-          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);        
-          
+          if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
+
         }
         break;
 
       case 'oio':
         if($this->rw == 'dirth3'){
-          global $dirth2wdpcComplete;
-          $jobs = array();
-          $coords['IOPS'] = array();
-          $coords['ART'] = array();
-  
           $info = json_decode(file_get_contents(sprintf("%s/fio-dirth-dirth2.json",dirname($dir))),TRUE);
-          $jobs = $info['jobs'];
-  
-          $str = sprintf("/^x%d\-40_60\-rand\-TC([0-9]+)\-QD([0-9]+)/", $dirth2wdpcComplete);
-  
-          foreach($jobs as $job){
-            if (preg_match($str, $job['jobname'], $m)){
-              $totalOIO = (int)$m[1] * (int)$m[2];
-              $iopsArray[$totalOIO] = round($job['write']['iops'] + $job['read']['iops'], 2);
-              $artArray[$totalOIO] = round(($job['write']['clat']['mean']/1000 + $job['read']['clat']['mean']/1000) / 2, 2);
+
+          if($info != NULL){
+            global $dirth2wdpcComplete;
+            $coords['IOPS'] = array();
+            $coords['ART'] = array();
+            $jobs = $info['jobs'];
+
+            $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD([0-9]+)/", $dirth2wdpcComplete);
+            foreach($jobs as $job){
+              if (preg_match($str, $job['jobname'], $m)){
+                $totalOIO = (int)$m[1] * (int)$m[2];
+                $iopsArray[$totalOIO] = round($job['write']['iops'] + $job['read']['iops'], 2);
+                $artArray[$totalOIO] = round(($job['write']['clat']['mean']/1000 + $job['read']['clat']['mean']/1000) / 2, 2);
+              }
             }
-          }
-  
-          ksort($iopsArray);
-          $i = 0;
-          foreach($iopsArray as $value){
-            $coords['IOPS'][] = array(++$i, $value);
-          }
-  
-          ksort($artArray);
-          $i = 0;
-          foreach($artArray as $value){
-            $coords['ART'][] = array(++$i, $value);
-          }
-  
-          $settings['y2tics'] = round(((max($artArray) - min($artArray)) / 7), 0);
+
+            if(isset($iopsArray)){
+              ksort($iopsArray);
+              $i = 0;
+              foreach($iopsArray as $value){
+                $coords['IOPS'][] = array(++$i, $value);
+              }
+            }
+
+            if(isset($artArray)){
+              ksort($artArray);
+              $i = 0;
+              foreach($artArray as $value){
+                $coords['ART'][] = array(++$i, $value);
+              }
+
+              $settings['y2tics'] = round(((max($artArray) - min($artArray)) / 7), 0);
+            }
+          }//end if($info != NULL)
+
           $settings['TOTALOIO'] = TRUE;
-  
-          $title = 'P15 IOPS or BW v Total OIO';
+
+          $title = sprintf("P15 RND %s RW%d IOPS and BW vs TOIO", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw']);
           $content = sprintf(self::plotTitle, $title);
           if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
         }
@@ -526,8 +487,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
   }
 
   /**
-   * this sub-class method should return a hash identifiying the sections 
-   * associated with the test report. The key in the hash should be the 
+   * this sub-class method should return a hash identifiying the sections
+   * associated with the test report. The key in the hash should be the
    * section identifier, and the value the section title
    * @return array
    */
@@ -552,14 +513,14 @@ class BlockStorageTestDirth extends BlockStorageTest {
 
   /**
    * this sub-class method should return a hash of setup parameters - these are
-   * label/value pairs displayed in the bottom 8 rows of the Set Up Parameters 
+   * label/value pairs displayed in the bottom 8 rows of the Set Up Parameters
    * columns in the report page headers
    * @return array
    */
   protected function getSetupParameters(){
     if (isset($this->controller)) return $this->controller->getSetupParameters();
     else {
-      return array(        
+      return array(
         'Pre Condition 1' => 'RND',
         '&nbsp;&nbsp;R/W %' => '0/100',
         '&nbsp;&nbsp;TOIO - TC/QD' => 'TC 32 / QD 32',
@@ -571,9 +532,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
       );
     }
   }
-  
+
   /**
-   * this sub-class method should return the subtitle for a given test and 
+   * this sub-class method should return the subtitle for a given test and
    * section
    * @param string $section the section identifier to return the subtitle for
    * @return string
@@ -581,10 +542,10 @@ class BlockStorageTestDirth extends BlockStorageTest {
   protected function getSubtitle($section){
     return sprintf("DIRTH - OLTP - RND %s RW = %d:%d ", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
   }
-  
+
   /**
    * this sub-class method should return a hash of test parameters - these are
-   * label/value pairs displayed in the bottom 8 rows of the Test Parameters 
+   * label/value pairs displayed in the bottom 8 rows of the Test Parameters
    * columns in the report page headers
    * @return array
    */
@@ -614,18 +575,18 @@ class BlockStorageTestDirth extends BlockStorageTest {
       );
     }
   }
-  
+
   /**
    * This method should return job specific metrics as a single level hash of
    * key/value pairs
    * @return array
    */
   protected function jobMetrics(){}
-  
-      
+
+
   /**
-   * Performs workload dependent preconditioning - this method must be 
-   * implemented by sub-classes. It should return one of the following 
+   * Performs workload dependent preconditioning - this method must be
+   * implemented by sub-classes. It should return one of the following
    * values:
    *   TRUE:  preconditioning successful and steady state achieved
    *   FALSE: preconditioning successful but steady state not achieved
@@ -639,25 +600,25 @@ class BlockStorageTestDirth extends BlockStorageTest {
       $rw = $this->rw;
       $max = self::DIRTH_MAX_ROUND;
 
-      if ($rw == 'dirth1') {  
+      if ($rw == 'dirth1') {
         /**
          * Test Flow 2.2 use R/W = 0/100
          * step 1: TC32/QD32 max 25 rounds, every round 30 minutes
-         * use 1. 31 . 61. 91...to get steady state
+         * use 1. 31 . 61. 91...to check steady state
          */
 
         print_msg(sprintf('Initiating workload dependent preconditioning and steady state for DIRTH test'), $this->verbose, __FILE__, __LINE__);
-        
+
         $ssMetrics = array();
-    
+
         for($x=1; $x<=$max; $x++) {
-    
+
           for($n=1; $n<=self::BLOCK_STORAGE_TEST_DIRTH_PRECONDITION_INTERVALS; $n++) {
             $name = sprintf('x%d-0_100-rand-n%02d', $x, $n);
             print_msg(sprintf('Starting %d sec DIRTH rand write preconditioning round %d of %d, test %d of %d [name=%s]', $this->options['wd_test_duration'], $x, $max, $n, self::BLOCK_STORAGE_TEST_DIRTH_PRECONDITION_INTERVALS, $name), $this->verbose, __FILE__, __LINE__);
-            
-            $params = array('rw' => 'randwrite', 'name' => $name, 
-                            'runtime' => $this->options['wd_test_duration'], 
+
+            $params = array('rw' => 'randwrite', 'name' => $name,
+                            'runtime' => $this->options['wd_test_duration'],
                             'time_based' => FALSE, 'iodepth'=> 32, 'numjobs'=> 32,
                             'blocksize' => $this->options['dirth_bs']);
 
@@ -668,7 +629,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
               print_msg(sprintf('Test %s failed', $name), $this->verbose, __FILE__, __LINE__, TRUE);
               break;
             }
-            
+
             // add steady state metric
             if ($results && $n==1) {
               $iops = $results['jobs'][0]['write']['iops'];
@@ -680,22 +641,22 @@ class BlockStorageTestDirth extends BlockStorageTest {
                 $metrics = array();
                 for($i=4; $i>=0; $i--){
                   $metrics[$x-$i] = $ssMetrics[$x-$i];
-                } 
+                }
                 print_msg(sprintf('DIRTH preconditioning test %d of %d complete and >= 5 rounds finished - checking if steady state has been achieved using IOPS metrics [%s],[%s]', $x, $max, implode(',', array_keys($metrics)), implode(',', $metrics)), $this->verbose, __FILE__, __LINE__);
-                
+
                 if ($this->isSteadyState($metrics, $x)) {
                   print_msg(sprintf('DIRTH steady state achieved - testing will stop'), $this->verbose, __FILE__, __LINE__);
                   $status = TRUE;
                   break;
-                } else{ 
+                } else{
                   print_msg(sprintf('DIRTH steady state NOT achieved'), $this->verbose, __FILE__, __LINE__);
                 }
                 // end of the line => last test round and steady state not achieved
                 if ($x == $max && $status === NULL) $status = FALSE;
               }
-            }   
+            }
             if (!$results || $status !== NULL) break;
-          }   
+          }
           if (!$results || $status !== NULL) break;
         }
 
@@ -704,9 +665,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
         $this->wdpcIntervals = self::BLOCK_STORAGE_TEST_DIRTH_PRECONDITION_INTERVALS;
         $this->wdpc = $status;
 
-      }elseif($rw == 'dirth2'){  
+      }elseif($rw == 'dirth2'){
         /**
-         * Test Flow 3. 
+         * Test Flow 3.
          * step 1: TC32/QD32 pre-write for 5 minutes use R/W = 0/100
          * step 2: composite TC/QD (49 composites) use R/W = $this->options['dirth_rw']
          */
@@ -724,12 +685,12 @@ class BlockStorageTestDirth extends BlockStorageTest {
           // TC32/QD32 pre-write for 5 minutes
           $name = sprintf('x%d-0_100-rand-prewrite', $x);
           print_msg(sprintf('Starting %d sec DIRTH rand write preconditioning round %d of %d [name=%s]', $preWriteTime, $x, $max, $name), $this->verbose, __FILE__, __LINE__);
-          
+
           $params = array('rw' => 'randwrite', 'name' => $name,
-                          'runtime' => $preWriteTime, 
+                          'runtime' => $preWriteTime,
                           'time_based' => FALSE, 'iodepth'=> 32, 'numjobs'=> 32,
                           'blocksize' => $this->options['dirth_bs']);
-                          
+
           if ($fio = $this->fio($params, 'wdpc')) {
             print_msg(sprintf('Test %s was successful', $name), $this->verbose, __FILE__, __LINE__);
             $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];
@@ -738,19 +699,19 @@ class BlockStorageTestDirth extends BlockStorageTest {
             break;
           }
 
-          // composite TC/QD   
-          $n = 0;       
-          foreach($tcArray as $tc){            
-            
+          // composite TC/QD
+          $n = 0;
+          foreach($tcArray as $tc){
+
             foreach($qdArray as $qd){
               $name = sprintf('x%d-RW1-rand-TC%d-QD%d-n%d', $x, $tc, $qd, ++$n);
               print_msg(sprintf('Starting %d sec DIRTH rand write round %d of %d, test %d of %d [name=%s]', $this->options['wd_test_duration'], $x, $max, $n, $composite, $name), $this->verbose, __FILE__, __LINE__);
-              
-              $params = array('rw' => 'randrw', 'rwmixread' => $this->options['dirth_rw'], 'name' => $name, 
-                              'runtime' => $this->options['wd_test_duration'], 
+
+              $params = array('rw' => 'randrw', 'rwmixread' => $this->options['dirth_rw'], 'name' => $name,
+                              'runtime' => $this->options['wd_test_duration'],
                               'time_based' => FALSE, 'iodepth'=> $tc, 'numjobs'=> $qd,
                               'blocksize' => $this->options['dirth_bs']);
-                              
+
               if ($fio = $this->fio($params, 'wdpc')) {
                 print_msg(sprintf('Test %s was successful', $name), $this->verbose, __FILE__, __LINE__);
                 $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];
@@ -777,33 +738,33 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $metrics = array();
             for($i=4; $i>=0; $i--) $metrics[$x-$i] = $ssMetrics[$x-$i];
             print_msg(sprintf('DIRTH test %d of %d complete and >= 5 rounds finished - checking if steady state has been achieved using IOPS metrics [%s],[%s]', $x, $max, implode(',', array_keys($metrics)), implode(',', $metrics)), $this->verbose, __FILE__, __LINE__);
-            
+
             if ($this->isSteadyState($metrics, $x)) {
               print_msg(sprintf('DIRTH steady state achieved - testing will stop'), $this->verbose, __FILE__, __LINE__);
               $status = TRUE;
 
 
-              // *** Test Flow 5 find the Max and Mid IOPS ***
+              // *** Test Flow 5 find out the Max and Mid IOPS ***
 
               foreach(array_keys($this->fio['wdpc']) as $i){
                 $job = isset($this->fio['wdpc'][$i]['jobs'][0]['jobname']) ? $this->fio['wdpc'][$i]['jobs'][0]['jobname'] : NULL;
                 $str = sprintf("/^x%d\-RW1\-rand\-TC([0-9]+)\-QD([0-9]+)/", $x);
 
-                if ($job && preg_match($str, $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])){                  
+                if ($job && preg_match($str, $job, $m) && isset($this->fio['wdpc'][$i]['jobs'][0]['write']['iops'])){
                   $art = $this->fio['wdpc'][$i]['jobs'][0]['write']['lat']['mean'] /1000; //ms
-                  
+
                   //shall be below 5 ms
                   if($art < 5){
                     $tq = sprintf("%d_%d", (int)$m[1], (int)$m[2]);
                     $tcqd[$tq] = $this->fio['wdpc'][$i]['jobs'][0]['write']['iops'];
-          
-                  }                  
+
+                  }
                 }
               }
-              // find max IOPS             
+              // find max IOPS
               $maxTcqd = array_search(max($tcqd), $tcqd);
 
-              // find mid IOPS              
+              // find mid IOPS
               $meanIOPS = (max($tcqd) + min($tcqd)) / 2;
               $diff = $mindiff = abs($meanIOPS - min($tcqd)); //init value
               $midTcqd = array_search(min($tcqd), $tcqd); //init value
@@ -824,10 +785,10 @@ class BlockStorageTestDirth extends BlockStorageTest {
               // *** Test Flow 5 find the Max and Mid IOPS ***
 
               break;
-            } else{ 
+            } else{
               print_msg(sprintf('DIRTH steady state NOT achieved'), $this->verbose, __FILE__, __LINE__);
             }
-            
+
             // end of the line => last test round and steady state not achieved
             if ($x == $max && $status === NULL) $status = FALSE;
           }
@@ -839,7 +800,8 @@ class BlockStorageTestDirth extends BlockStorageTest {
         $this->subtests['dirth2']->wdpcComplete = $x;
         $this->wdpcIntervals = $composite;
         $this->wdpc = $status;
-
+        global $dirth2wdpcComplete;
+        $dirth2wdpcComplete = $x;
       }//end elseif($rw == 'dirth2')
       else{
           /**
@@ -848,11 +810,11 @@ class BlockStorageTestDirth extends BlockStorageTest {
            *  two steps in each type
            *  1. pre-write R/W 0/100 60 minutes
            *  2. R/W RW1 10 minutes
-           */ 
-          
+           */
+
           $tests = array('pre-write', 'rw1');
           $x = 1;
-        
+
           global $tcqdArray;
 
           foreach($tcqdArray[$this->test] as $type => $value){
@@ -865,28 +827,28 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $data = explode('_', $value);
             $tc = $data[0];
             $qd = $data[1];
-            
+
             foreach($tests as $test){
               if($test == 'pre-write'){
                 // pre-write 0/100 60 minutes
                 $rw = '0_100';
                 $max = 60;
-                $params = array('rw' => 'randwrite', 
-                                'runtime' => $this->options['wd_test_duration'], 
+                $params = array('rw' => 'randwrite',
+                                'runtime' => $this->options['wd_test_duration'],
                                 'time_based' => FALSE, 'iodepth'=>$tc, 'numjobs'=>$qd,
                                 'blocksize' => $this->options['dirth_bs']);
-                $writeLog = FALSE; 
+                $writeLog = FALSE;
               }else{
-                // RW1 10 minutes    
-                $rw = sprintf("%d_%d", $this->options['dirth_rw'], 100-$this->options['dirth_rw']);           
+                // RW1 10 minutes
+                $rw = sprintf("%d_%d", $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
                 $max = 10;
-                $params = array('rw' => 'randrw', 'rwmixread' => $this->options['dirth_rw'], 
-                                'runtime' => $this->options['wd_test_duration'], 
+                $params = array('rw' => 'randrw', 'rwmixread' => $this->options['dirth_rw'],
+                                'runtime' => $this->options['wd_test_duration'],
                                 'time_based' => FALSE, 'iodepth'=>$tc, 'numjobs'=>$qd,
                                 'blocksize' => $this->options['dirth_bs']);
-                $writeLog = TRUE;                                
+                $writeLog = TRUE;
               }
-                
+
               for($n=1; $n<=$max; $n++){
                 $name = sprintf('x%d-%s-rand-n%d-TC%d-QD%d-%s', $x, $rw, $n, $tc, $qd, $type);
                 print_msg(sprintf('Starting %d sec DIRTH rand write , test %d of %d [name=%s]', $this->options['wd_test_duration'], $n, $max, $name), $this->verbose, __FILE__, __LINE__);
@@ -897,7 +859,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
                 if ($fio = $this->fio($params, 'wdpc')) {
                   print_msg(sprintf('Test %s was successful', $name), $this->verbose, __FILE__, __LINE__);
                   $results = $this->fio['wdpc'][count($this->fio['wdpc']) - 1];
-    
+
                   $str = sprintf("/x3\-%d_%d\-rand\-n10\-TC1\-QD1\-MIN/",$this->options['dirth_rw'], 100-$this->options['dirth_rw']);
                   if(preg_match($str, $name)) $status = TRUE;
                 }else {
@@ -907,9 +869,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
               }
             }// end foreach($tests as $test)
 
-            $x = ($x == count($tcqdArray[$this->test]))? $x : ++$x;            
+            $x = ($x == count($tcqdArray[$this->test]))? $x : ++$x;
           }//end foreach($tcqdArray[$this->test] as $type => $value)
-          
+
           $this->wdpcComplete = $x;
           $this->wdpcIntervals = 60;
           $this->wdpc = $status;
@@ -928,9 +890,9 @@ class BlockStorageTestDirth extends BlockStorageTest {
       }
     }
 
-    return $status;    
+    return $status;
   }
-  
+
   /**
    * transform block size display method
    * @param int $bs block size
