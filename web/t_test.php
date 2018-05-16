@@ -78,7 +78,7 @@ function GetSSDInfo($num)
             while(!feof($fp)) {
                 $txt = fgets($fp);
             
-                if(preg_match("/mn/", $txt)){
+                if(preg_match("/mn /", $txt)){
                     $newtxt = explode(":", chop($txt));
                     $newtxt1 = explode(" ", trim($newtxt[1]));
                     if($newtxt1[1] == NULL){
