@@ -94,7 +94,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           }
 
           $title = 'P1 TC32-QD32, IOPS vs Round';
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
 
@@ -137,7 +137,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $settings['yMin'] = '20%';
 
             $title = ($section == 'pre_steady_state') ? 'P2 PC Steady State Check TC32-QD32' : 'P5 Demand Variation Steady State Check TC32-QD32';
-            $content = sprintf($this->plotTitle, $title);
+            $content = sprintf(self::plotTitle, $title);
             $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
           }
         }
@@ -164,7 +164,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
                             'pointColor' => 'blue');
 
           $title = 'P3 Between Round Pre-Writes';
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           $content .= $this->generatePointChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, $settings);
         }
 
@@ -194,7 +194,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $settings['yMin'] = 0;
 
           $title = 'P4 TC=32 IOPS vs Round, All QD';
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           $content .= $this->generateLineChart($dir, $section, $coords, 'Round', 'IOPS', NULL, $settings);
         }
 
@@ -247,7 +247,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $settings['usrxTicLabel'] = 'set xtics ("1"0,"2"2,"4"4,"8"6,"16"8,"32"10)';
 
           $title = sprintf("P6 RND %s, RW=%d/%d Demand Variation", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           $content .= $this->generateLineChart($dir, $section, $coords, 'Queue Depth', 'IOPS', NULL, $settings);
         }
 
@@ -287,7 +287,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           $settings['yFloatPrec'] = 2;
 
           $title = sprintf("P7 RND %s RW=%d/%d Demand Intensity", $this->ShowBlockSize($this->options['dirth_bs']), $this->options['dirth_rw'], 100-$this->options['dirth_rw']);
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           $content .= $this->generateLineChart($dir, $section, $coords, 'IOPS', 'Time (ms)', NULL, $settings);
         }
         break;
@@ -322,7 +322,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           }
 
           $title = 'P8 System CPU Utilization During Demand Variation Test';
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           $content .= $this->generate3dChart($section, $series, $settings, 'Thread Count');
         }
 
@@ -348,7 +348,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
           }
 
           $title = preg_match('/^max/',$section)? 'P9 MaxIOPS Pre-Writes':(preg_match('/^mid/',$section)?'P11 MidIOPS Pre-Writes':'P13 MinIOPS Pre-Writes');
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           if ($coords) $content .= $this->generateLineChart($dir, $section, $coords, 'Time (Minutes)', 'IOPS', NULL, array('xMin' => 0, 'yMin' => 0));
         }
         break;
@@ -430,7 +430,7 @@ class BlockStorageTestDirth extends BlockStorageTest {
             $title = sprintf("P14 Min IOPS Response Time Histogram, MRT=%d ms",$maxTime);
           }
 
-          $content = sprintf($this->plotTitle, $title);
+          $content = sprintf(self::plotTitle, $title);
           if ($coords) $content .= $this->generateHistogram($dir, $section, $coords, NULL, $settings);
 
         }
