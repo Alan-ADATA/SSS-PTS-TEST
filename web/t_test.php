@@ -23,7 +23,8 @@ include_once("util.php");
 $str = "";
 
 if(!is_dir($report_folder)){
-    if(!mkdir($report_folder, 0777, true)){
+    shell_exec(sprintf("sudo mkdir -m=777 %s", $report_folder));
+    if(!is_dir($report_folder)){
         die('Failed to create report folder. You need create it by yourself and set mode 777.');
     }
 }

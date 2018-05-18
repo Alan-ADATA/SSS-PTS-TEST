@@ -24,7 +24,6 @@ https://docs.phpmyadmin.net/en/latest/setup.html#ubuntu
 # get SSS-PTS-TEST
 $cd /opt
 $sudo git clone https://github.com/Alan-ADATA/SSS-PTS-TEST.git
-$sudo mkdir -m=777 SSS-PTS-TEST/report
 
 
 # Set up Database
