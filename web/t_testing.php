@@ -107,7 +107,7 @@ if($data = $stmt->fetch(PDO::FETCH_ASSOC)){
         $cmdstr.= ' --nopurge';
     }elseif($_POST['purge'] == 1){
         $cmdstr.= ' --secureerase_pswd=pts';
-        shell_exec(sprintf("sudo hdparm --user-master u --security-set-pass pts %s",$_POST['test']));
+        shell_exec(sprintf("sudo hdparm --user-master u --security-set-pass pts %s", $_POST['target']));
     }elseif($_POST['purge'] == 4){
         $cmdstr.= ' --nvmeformat=1';
     }
