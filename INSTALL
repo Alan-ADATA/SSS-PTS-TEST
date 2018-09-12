@@ -34,8 +34,8 @@ $sudo git clone https://github.com/Alan-ADATA/SSS-PTS-TEST.git
 
 
 # config apache server
-1. create a soft link
-    $sudo ln -s /var/www/html/pts /opt/SSS-PTS-TEST/web/
+1. create a symbolic link
+    $sudo ln -s /opt/SSS-PTS-TEST/web/ /var/www/html/pts
 2. $sudo service apache2 restart
 3. $sudo visudo
     add 'www-data ALL=(ALL) NOPASSWD: ALL'
